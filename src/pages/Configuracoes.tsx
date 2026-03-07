@@ -12,10 +12,10 @@ import {
 } from '@/components/ui/dialog';
 import { mockSites, mockLines, mockEquipments, mockFlows } from '@/data/mockData';
 import { STOP_CATEGORIES } from '@/types/production';
-import type { Site, ProductionLine, Equipment, ProductionFlow } from '@/types/production';
+import type { Site, ProductionLine, Equipment, ProductionFlow, Transport } from '@/types/production';
 import {
   Settings, Building2, Factory, Cog, GitBranch, Gauge, Tag,
-  Plus, Pencil, Trash2, ChevronRight, ChevronDown, MapPin,
+  Plus, Pencil, Trash2, ChevronRight, ChevronDown, MapPin, ArrowRightLeft,
 } from 'lucide-react';
 
 type DialogMode = 'create' | 'edit';
@@ -30,11 +30,11 @@ export default function Configuracoes() {
   // Expansion state
   const [expandedSite, setExpandedSite] = useState<string | null>('site-1');
   const [expandedLine, setExpandedLine] = useState<string | null>('line-1');
-  const [activeTab, setActiveTab] = useState<'equipments' | 'flows'>('equipments');
+  const [activeTab, setActiveTab] = useState<'equipments' | 'flows' | 'transports'>('equipments');
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<'site' | 'line' | 'equipment' | 'flow'>('site');
+  const [dialogType, setDialogType] = useState<'site' | 'line' | 'equipment' | 'flow' | 'transport'>('site');
   const [dialogMode, setDialogMode] = useState<DialogMode>('create');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dialogContext, setDialogContext] = useState<string>(''); // parent ID
@@ -45,13 +45,14 @@ export default function Configuracoes() {
   const [formLocation, setFormLocation] = useState('');
   const [formNominal, setFormNominal] = useState('');
   const [formSku, setFormSku] = useState('');
-
+  const [formCapacity, setFormCapacity] = useState('');
   const resetForm = () => {
     setFormName('');
     setFormType('');
     setFormLocation('');
     setFormNominal('');
     setFormSku('');
+    setFormCapacity('');
   };
 
   const openCreateDialog = (type: typeof dialogType, contextId = '') => {
@@ -80,6 +81,10 @@ export default function Configuracoes() {
     } else if (type === 'flow') {
       const f = flows.find(f => f.id === id);
       if (f) { setFormName(f.name); setFormSku(f.sku); setFormNominal(String(f.nominalSpeed)); setDialogContext(f.lineId); }
+    } else if (type === 'transport') {
+      const line = lines.find(l => l.transports.some(t => t.id === id));
+      const t = line?.transports.find(t => t.id === id);
+      if (t && line) { setFormCapacity(String(t.capacity)); setFormType(t.type); setDialogContext(line.id); }
     }
     setDialogOpen(true);
   };
@@ -108,11 +113,25 @@ export default function Configuracoes() {
     } else if (dialogType === 'equipment') {
       if (dialogMode === 'create') {
         const lineEquips = equipments.filter(e => e.lineId === dialogContext);
+        const newPosition = lineEquips.length + 1;
         const newEquip: Equipment = {
           id, name: formName, type: formType, lineId: dialogContext,
-          position: lineEquips.length + 1, nominalSpeed: Number(formNominal) || 0,
+          position: newPosition, nominalSpeed: Number(formNominal) || 0,
         };
         setEquipments(prev => [...prev, newEquip]);
+        // Auto-create transport from previous equipment to this one
+        if (newPosition > 1) {
+          const transportId = `transport-${Date.now()}`;
+          const newTransport: Transport = {
+            id: transportId, fromPosition: newPosition - 1, toPosition: newPosition,
+            lineId: dialogContext, type: 'conveyor', accumulation: 'normal',
+            accumulationPercent: 0, capacity: 50, currentUnits: 0,
+          };
+          setLines(prev => prev.map(l => l.id === dialogContext
+            ? { ...l, transports: [...l.transports, newTransport] }
+            : l
+          ));
+        }
       } else {
         setEquipments(prev => prev.map(e => e.id === id ? { ...e, name: formName, type: formType, nominalSpeed: Number(formNominal) || 0 } : e));
       }
@@ -127,6 +146,18 @@ export default function Configuracoes() {
       } else {
         setFlows(prev => prev.map(f => f.id === id ? { ...f, name: formName, sku: formSku, nominalSpeed: Number(formNominal) || 0 } : f));
       }
+    } else if (dialogType === 'transport') {
+      // Only edit mode for transports
+      setLines(prev => prev.map(l => l.id === dialogContext
+        ? {
+          ...l,
+          transports: l.transports.map(t => t.id === id
+            ? { ...t, capacity: Number(formCapacity) || t.capacity, type: (formType as Transport['type']) || t.type }
+            : t
+          ),
+        }
+        : l
+      ));
     }
 
     setDialogOpen(false);
@@ -153,6 +184,7 @@ export default function Configuracoes() {
     line: { create: 'Nova Linha', edit: 'Editar Linha' },
     equipment: { create: 'Novo Equipamento', edit: 'Editar Equipamento' },
     flow: { create: 'Novo Fluxo', edit: 'Editar Fluxo' },
+    transport: { create: 'Novo Transporte', edit: 'Editar Transporte' },
   };
 
   return (
@@ -217,6 +249,7 @@ export default function Configuracoes() {
                   {siteLines.map(line => {
                     const lineEquips = equipments.filter(e => e.lineId === line.id);
                     const lineFlows = flows.filter(f => f.lineId === line.id);
+                    const lineTransports = line.transports || [];
                     const isLineExpanded = expandedLine === line.id;
 
                     return (
@@ -262,6 +295,12 @@ export default function Configuracoes() {
                                 className={`px-3 py-1.5 text-[11px] font-medium rounded-t-md transition-colors ${activeTab === 'flows' ? 'bg-card text-foreground border border-b-0' : 'text-muted-foreground hover:text-foreground'}`}
                               >
                                 <GitBranch className="h-3 w-3 inline mr-1" /> Fluxos ({lineFlows.length})
+                              </button>
+                              <button
+                                onClick={() => setActiveTab('transports')}
+                                className={`px-3 py-1.5 text-[11px] font-medium rounded-t-md transition-colors ${activeTab === 'transports' ? 'bg-card text-foreground border border-b-0' : 'text-muted-foreground hover:text-foreground'}`}
+                              >
+                                <ArrowRightLeft className="h-3 w-3 inline mr-1" /> Transportes ({lineTransports.length})
                               </button>
                             </div>
 
@@ -346,6 +385,45 @@ export default function Configuracoes() {
                                   })}
                                 </div>
                               )}
+
+                              {activeTab === 'transports' && (
+                                <div className="space-y-1.5">
+                                  {lineTransports.length === 0 && (
+                                    <p className="text-[11px] text-muted-foreground italic text-center py-2">
+                                      Transportes são criados automaticamente ao adicionar equipamentos.
+                                    </p>
+                                  )}
+                                  {lineTransports
+                                    .sort((a, b) => a.fromPosition - b.fromPosition)
+                                    .map(transport => {
+                                      const fromEquip = lineEquips.find(e => e.position === transport.fromPosition);
+                                      const toEquip = lineEquips.find(e => e.position === transport.toPosition);
+                                      return (
+                                        <div key={transport.id} className="flex items-center justify-between px-3 py-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors">
+                                          <div className="flex items-center gap-2.5">
+                                            <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                                            <div>
+                                              <p className="text-[11px] font-medium text-foreground">
+                                                {fromEquip?.name ?? `Pos ${transport.fromPosition}`}
+                                                <span className="text-muted-foreground mx-1">→</span>
+                                                {toEquip?.name ?? `Pos ${transport.toPosition}`}
+                                              </p>
+                                              <p className="text-[10px] text-muted-foreground capitalize">{transport.type}</p>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <Badge variant="secondary" className="text-[10px] gap-1">
+                                              Cap: {transport.capacity} un
+                                            </Badge>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog('transport', transport.id)}>
+                                              <Pencil className="h-3 w-3 text-muted-foreground" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
@@ -388,10 +466,12 @@ export default function Configuracoes() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
-            <div>
-              <Label className="text-[11px]">Nome</Label>
-              <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Nome" className="h-8 text-sm mt-1" />
-            </div>
+            {dialogType !== 'transport' && (
+              <div>
+                <Label className="text-[11px]">Nome</Label>
+                <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Nome" className="h-8 text-sm mt-1" />
+              </div>
+            )}
 
             {dialogType === 'site' && (
               <div>
@@ -400,10 +480,15 @@ export default function Configuracoes() {
               </div>
             )}
 
-            {(dialogType === 'line' || dialogType === 'equipment') && (
+            {(dialogType === 'line' || dialogType === 'equipment' || dialogType === 'transport') && (
               <div>
                 <Label className="text-[11px]">Tipo</Label>
-                <Input value={formType} onChange={e => setFormType(e.target.value)} placeholder="Ex: Envase, Processor" className="h-8 text-sm mt-1" />
+                <Input
+                  value={formType}
+                  onChange={e => setFormType(e.target.value)}
+                  placeholder={dialogType === 'transport' ? 'conveyor, buffer, gravity' : 'Ex: Envase, Processor'}
+                  className="h-8 text-sm mt-1"
+                />
               </div>
             )}
 
@@ -420,12 +505,19 @@ export default function Configuracoes() {
                 <Input value={formSku} onChange={e => setFormSku(e.target.value)} placeholder="Ex: SKU-204" className="h-8 text-sm mt-1 font-mono" />
               </div>
             )}
+
+            {dialogType === 'transport' && (
+              <div>
+                <Label className="text-[11px]">Capacidade (unidades)</Label>
+                <Input type="number" value={formCapacity} onChange={e => setFormCapacity(e.target.value)} placeholder="50" className="h-8 text-sm mt-1" />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)} className="text-xs">
               Cancelar
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={!formName.trim()} className="text-xs">
+            <Button size="sm" onClick={handleSave} disabled={dialogType !== 'transport' && !formName.trim()} className="text-xs">
               {dialogMode === 'create' ? 'Criar' : 'Salvar'}
             </Button>
           </DialogFooter>
