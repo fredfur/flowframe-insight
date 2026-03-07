@@ -249,6 +249,7 @@ export default function Configuracoes() {
                   {siteLines.map(line => {
                     const lineEquips = equipments.filter(e => e.lineId === line.id);
                     const lineFlows = flows.filter(f => f.lineId === line.id);
+                    const lineTransports = line.transports || [];
                     const isLineExpanded = expandedLine === line.id;
 
                     return (
