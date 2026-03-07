@@ -19,64 +19,64 @@ export default function Stops() {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
-    <div className="space-y-5 max-w-3xl">
+    <div className="space-y-6 max-w-3xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-base font-semibold text-foreground">Registro de Paradas</h1>
-          <p className="text-[11px] text-muted-foreground">{line.name}</p>
+          <h1 className="text-lg font-semibold text-foreground">Registro de Paradas</h1>
+          <p className="text-sm text-muted-foreground">{line.name}</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="h-7 text-xs">
-              <Plus className="h-3.5 w-3.5 mr-1" /> Nova Parada
+            <Button size="sm">
+              <Plus className="h-4 w-4 mr-1.5" /> Nova Parada
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="text-sm">Registrar Parada</DialogTitle>
+              <DialogTitle>Registrar Parada</DialogTitle>
             </DialogHeader>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <label className="text-[11px] text-muted-foreground mb-1 block">Máquina</label>
+                <label className="text-sm text-muted-foreground mb-1.5 block">Máquina</label>
                 <Select>
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger>
                     <SelectValue placeholder="Selecionar máquina" />
                   </SelectTrigger>
                   <SelectContent>
                     {line.machines.map(m => (
-                      <SelectItem key={m.id} value={m.id} className="text-xs">{m.name}</SelectItem>
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-[11px] text-muted-foreground mb-1 block">Categoria</label>
+                <label className="text-sm text-muted-foreground mb-1.5 block">Categoria</label>
                 <Select>
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger>
                     <SelectValue placeholder="Selecionar categoria" />
                   </SelectTrigger>
                   <SelectContent>
                     {STOP_CATEGORIES.map(c => (
-                      <SelectItem key={c.id} value={c.id} className="text-xs">{c.label}</SelectItem>
+                      <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] text-muted-foreground mb-1 block">Início</label>
-                  <Input type="datetime-local" className="h-8 text-xs" />
+                  <label className="text-sm text-muted-foreground mb-1.5 block">Início</label>
+                  <Input type="datetime-local" />
                 </div>
                 <div>
-                  <label className="text-[11px] text-muted-foreground mb-1 block">Fim (opcional)</label>
-                  <Input type="datetime-local" className="h-8 text-xs" />
+                  <label className="text-sm text-muted-foreground mb-1.5 block">Fim (opcional)</label>
+                  <Input type="datetime-local" />
                 </div>
               </div>
               <div>
-                <label className="text-[11px] text-muted-foreground mb-1 block">Observações</label>
-                <Textarea className="text-xs" rows={3} placeholder="Detalhes da parada..." />
+                <label className="text-sm text-muted-foreground mb-1.5 block">Observações</label>
+                <Textarea rows={3} placeholder="Detalhes da parada..." />
               </div>
-              <Button className="w-full h-8 text-xs" onClick={() => setDialogOpen(false)}>
+              <Button className="w-full" onClick={() => setDialogOpen(false)}>
                 Registrar Parada
               </Button>
             </div>
@@ -84,12 +84,13 @@ export default function Stops() {
         </Dialog>
       </div>
 
+      {/* Active stops */}
       {activeStops.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-[11px] font-medium text-destructive flex items-center gap-1">
-            <AlertTriangle className="h-3 w-3" /> Paradas Ativas ({activeStops.length})
+          <h2 className="text-sm font-medium text-destructive flex items-center gap-1.5">
+            <AlertTriangle className="h-3.5 w-3.5" /> Paradas Ativas ({activeStops.length})
           </h2>
-          <div className="space-y-1">
+          <div className="space-y-2">
             {activeStops.map((stop) => (
               <StopRow key={stop.id} stop={stop} active />
             ))}
@@ -97,11 +98,12 @@ export default function Stops() {
         </div>
       )}
 
+      {/* Closed stops */}
       <div className="space-y-2">
-        <h2 className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
-          <Clock className="h-3 w-3" /> Histórico
+        <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+          <Clock className="h-3.5 w-3.5" /> Histórico
         </h2>
-        <div className="space-y-1">
+        <div className="space-y-2">
           {closedStops.map((stop) => (
             <StopRow key={stop.id} stop={stop} />
           ))}
@@ -114,26 +116,32 @@ export default function Stops() {
 function StopRow({ stop, active }: { stop: Stop; active?: boolean }) {
   const cat = STOP_CATEGORIES.find(c => c.id === stop.category);
   return (
-    <div className={`flex items-center justify-between px-3 py-2.5 rounded-lg border ${active ? 'border-destructive/30 bg-destructive/5' : 'bg-card'}`}>
-      <div className="flex items-center gap-2.5">
-        <Badge variant="outline" style={{ borderColor: cat?.color, color: cat?.color }} className="text-[10px]">
+    <div className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-colors ${
+      active ? 'border-destructive/30 bg-destructive/5' : 'border-border bg-card hover:bg-accent'
+    }`}>
+      <div className="flex items-center gap-3 min-w-0">
+        <Badge
+          variant="outline"
+          style={{ borderColor: cat?.color, color: cat?.color }}
+          className="text-xs shrink-0"
+        >
           {cat?.label}
         </Badge>
-        <div>
-          <p className="text-[12px] font-medium text-foreground">{stop.machineName}</p>
-          {stop.notes && <p className="text-[10px] text-muted-foreground">{stop.notes}</p>}
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground truncate">{stop.machineName}</p>
+          {stop.notes && <p className="text-xs text-muted-foreground truncate">{stop.notes}</p>}
         </div>
       </div>
-      <div className="text-right">
-        <p className="text-[11px] tabular-nums text-foreground">
+      <div className="text-right shrink-0 ml-4">
+        <p className="text-sm tabular-nums text-foreground">
           {new Date(stop.startTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           {stop.endTime && ` — ${new Date(stop.endTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`}
         </p>
         {stop.duration && (
-          <p className="text-[10px] tabular-nums text-muted-foreground">{stop.duration} min</p>
+          <p className="text-xs tabular-nums text-muted-foreground">{stop.duration} min</p>
         )}
         {!stop.endTime && (
-          <Badge variant="destructive" className="text-[9px] mt-0.5">Em andamento</Badge>
+          <Badge variant="destructive" className="text-xs mt-1">Em andamento</Badge>
         )}
       </div>
     </div>

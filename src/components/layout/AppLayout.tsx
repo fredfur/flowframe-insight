@@ -6,45 +6,50 @@ import { Button } from '@/components/ui/button';
 import { Moon, Sun } from 'lucide-react';
 import { mockLines } from '@/data/mockData';
 import { useLineStore } from '@/stores/lineStore';
-import { useThemeStore } from '@/stores/themeStore';
+import { useTheme } from 'next-themes';
 
 export function AppLayout() {
   const { selectedLineId, setSelectedLineId } = useLineStore();
-  const { theme, toggleTheme } = useThemeStore();
+  const { theme, setTheme } = useTheme();
 
   return (
     <SidebarProvider>
-      <div className={`min-h-screen flex w-full ${theme}`}>
+      <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-11 flex items-center justify-between border-b px-3 bg-background shrink-0">
-            <div className="flex items-center gap-2">
+          <header className="h-12 flex items-center justify-between border-b px-4 bg-background shrink-0">
+            <div className="flex items-center gap-3">
               <SidebarTrigger className="h-7 w-7 text-muted-foreground hover:text-foreground" />
               <div className="h-4 w-px bg-border" />
               <Select value={selectedLineId} onValueChange={setSelectedLineId}>
-                <SelectTrigger className="w-[200px] h-7 text-xs border-none bg-transparent shadow-none hover:bg-accent">
+                <SelectTrigger className="w-[200px] h-8 text-sm">
                   <SelectValue placeholder="Selecionar linha" />
                 </SelectTrigger>
                 <SelectContent>
                   {mockLines.map((line) => (
-                    <SelectItem key={line.id} value={line.id} className="text-xs">
+                    <SelectItem key={line.id} value={line.id}>
                       {line.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mr-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-status-running animate-pulse" />
-                <span className="text-[11px]">Live</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <span className="h-2 w-2 rounded-full bg-status-running animate-pulse" />
+                <span>Live</span>
               </div>
-              <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-7 w-7 text-muted-foreground hover:text-foreground">
-                {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              >
+                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
             </div>
           </header>
-          <main className="flex-1 overflow-auto p-5">
+          <main className="flex-1 overflow-auto p-6">
             <Outlet />
           </main>
         </div>
