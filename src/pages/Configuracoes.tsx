@@ -52,6 +52,7 @@ export default function Configuracoes() {
     setFormLocation('');
     setFormNominal('');
     setFormSku('');
+    setFormCapacity('');
   };
 
   const openCreateDialog = (type: typeof dialogType, contextId = '') => {
