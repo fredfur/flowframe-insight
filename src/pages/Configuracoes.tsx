@@ -296,6 +296,12 @@ export default function Configuracoes() {
                               >
                                 <GitBranch className="h-3 w-3 inline mr-1" /> Fluxos ({lineFlows.length})
                               </button>
+                              <button
+                                onClick={() => setActiveTab('transports')}
+                                className={`px-3 py-1.5 text-[11px] font-medium rounded-t-md transition-colors ${activeTab === 'transports' ? 'bg-card text-foreground border border-b-0' : 'text-muted-foreground hover:text-foreground'}`}
+                              >
+                                <ArrowRightLeft className="h-3 w-3 inline mr-1" /> Transportes ({lineTransports.length})
+                              </button>
                             </div>
 
                             <div className="bg-card mx-8 mb-3 rounded-b-md rounded-tr-md border p-3">
