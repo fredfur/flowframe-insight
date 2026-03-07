@@ -53,7 +53,6 @@ export default function LineLive() {
             <p className="text-sm font-medium text-foreground">Fluxo de Linha</p>
             <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
               <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-running" /> Produzindo</span>
-              <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-stopped" /> Parada</span>
               <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-fault" /> Falha</span>
               <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-shortage" /> Falta</span>
               <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-accumulation" /> Acúmulo</span>
