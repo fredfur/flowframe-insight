@@ -140,7 +140,7 @@ export default function LineLive() {
                 <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="throughput" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="nominal" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="nominal" fill="hsl(var(--muted-foreground) / 0.45)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ChartContainer>
           </div>
