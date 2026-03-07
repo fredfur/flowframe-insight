@@ -251,14 +251,21 @@ export function LineTimeline({ machines, timelines, speedSamples, nominalSpeed, 
         </button>
       </div>
 
-      <div>
-        {/* Aggregated line bar — with speed overlay */}
-        <div className={cn('flex items-center gap-2', expanded && 'mb-2')}>
-          <div className={cn(LABEL_W, 'shrink-0 flex items-center gap-1.5 justify-end')}>
-            <Layers className="h-3 w-3 text-primary" />
-            <span className="text-[11px] font-medium text-foreground">Linha</span>
-          </div>
-          <div className="flex-1 relative" style={{ height: `${barHeightPx}px` }}>
+      {/* Grid container — vertical guide lines span all bars */}
+      <div className="flex items-start gap-2">
+        <div className={cn(LABEL_W, 'shrink-0')} />
+        <div className="flex-1 relative">
+          {/* Vertical grid lines */}
+          {ticks.map((m) => (
+            <div
+              key={m}
+              className="absolute top-0 bottom-0 border-l border-border/40"
+              style={{ left: `${((m - start) / totalMin) * 100}%` }}
+            />
+          ))}
+
+          {/* Aggregated line bar */}
+          <div className="relative mb-1" style={{ height: `${barHeightPx}px` }}>
             <TimelineBar segments={aggregated} start={start} totalMin={totalMin} height="h-full" />
             {speedSamples && nominalSpeed && (
               <SpeedOverlay
@@ -270,30 +277,46 @@ export function LineTimeline({ machines, timelines, speedSamples, nominalSpeed, 
               />
             )}
           </div>
-        </div>
 
-        {/* Expanded equipment swimlanes */}
-        {expanded && (
-          <div className="space-y-1 border-l-2 border-border ml-[6.5rem] pl-0">
+          {/* Expanded equipment swimlanes */}
+          {expanded && (
+            <div className="space-y-1 mt-1">
+              {timelines.map((tl) => (
+                <TimelineBar
+                  key={tl.machineId}
+                  segments={tl.segments}
+                  start={start}
+                  totalMin={totalMin}
+                  height="h-3"
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Labels for swimlanes — rendered separately to align with bars */}
+      {expanded && (
+        <div className="flex items-start gap-2 -mt-[1px]" style={{ marginTop: `-${timelines.length * 16 + 4}px` }}>
+          <div className={cn(LABEL_W, 'shrink-0 flex flex-col pt-[4px]')} style={{ gap: '4px', paddingTop: `${barHeightPx + 8}px` }}>
             {timelines.map((tl) => (
-              <div key={tl.machineId} className="flex items-center gap-2">
-                <span className={cn('w-[5.5rem] shrink-0 text-[10px] text-muted-foreground text-right truncate tabular-nums pr-2')}>
-                  {tl.machineName}
-                </span>
-                <div className="flex-1">
-                  <TimelineBar segments={tl.segments} start={start} totalMin={totalMin} height="h-3" />
-                </div>
-              </div>
+              <span
+                key={tl.machineId}
+                className="text-[10px] text-muted-foreground text-right truncate tabular-nums"
+                style={{ height: '12px', lineHeight: '12px' }}
+              >
+                {tl.machineName}
+              </span>
             ))}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Shared time axis */}
-        <div className="flex items-start gap-2">
-          <span className={cn(LABEL_W, 'shrink-0')} />
-          <div className="flex-1">
-            <TimeAxis ticks={ticks} start={start} totalMin={totalMin} />
-          </div>
+      {/* Shared time axis */}
+      <div className="flex items-start gap-2">
+        <span className={cn(LABEL_W, 'shrink-0')} />
+        <div className="flex-1">
+          <TimeAxis ticks={ticks} start={start} totalMin={totalMin} />
         </div>
       </div>
 
