@@ -45,7 +45,7 @@ export default function Configuracoes() {
   const [formLocation, setFormLocation] = useState('');
   const [formNominal, setFormNominal] = useState('');
   const [formSku, setFormSku] = useState('');
-
+  const [formCapacity, setFormCapacity] = useState('');
   const resetForm = () => {
     setFormName('');
     setFormType('');
