@@ -62,6 +62,11 @@ export default {
           stopped: "hsl(var(--status-stopped))",
           setup: "hsl(var(--status-setup))",
           idle: "hsl(var(--status-idle))",
+          accumulation: "hsl(var(--status-accumulation))",
+          shortage: "hsl(var(--status-shortage))",
+          fault: "hsl(var(--status-fault))",
+          scheduled: "hsl(var(--status-scheduled))",
+          disconnected: "hsl(var(--status-disconnected))",
         },
         oee: {
           excellent: "hsl(var(--oee-excellent))",

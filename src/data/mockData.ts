@@ -1,4 +1,5 @@
 import { Machine, ProductionLine, Stop, DLIDataPoint, OEEHistoryPoint, Site, Equipment, ProductionFlow } from '@/types/production';
+import { MachineTimeline, TimelineSegment, TimelineStatus } from '@/components/production/LineTimeline';
 
 const createMachines = (lineId: string): Machine[] => [
   {
@@ -148,3 +149,71 @@ export const mockParetoData = [
   { category: 'Planejada', minutes: 30, count: 2 },
   { category: 'Outros', minutes: 15, count: 1 },
 ];
+
+// --- Timeline mock data (1º Turno: 360–840 min = 06:00–14:00) ---
+function makeSegments(patterns: Array<[TimelineStatus, number, number]>): TimelineSegment[] {
+  return patterns.map(([status, startMin, endMin]) => ({ status, startMin, endMin }));
+}
+
+export const mockTimelines: Record<string, MachineTimeline[]> = {
+  'line-1': [
+    {
+      machineId: 'line-1-m1', machineName: 'Alimentador',
+      segments: makeSegments([
+        ['running', 360, 420], ['shortage', 420, 435], ['running', 435, 540],
+        ['scheduled', 540, 570], ['running', 570, 720], ['fault', 720, 740], ['running', 740, 840],
+      ]),
+    },
+    {
+      machineId: 'line-1-m2', machineName: 'Processadora A',
+      segments: makeSegments([
+        ['running', 360, 375], ['shortage', 375, 405], ['running', 405, 510],
+        ['accumulation', 510, 535], ['running', 535, 600], ['scheduled', 600, 630],
+        ['running', 630, 840],
+      ]),
+    },
+    {
+      machineId: 'line-1-m3', machineName: 'Inspeção Visual',
+      segments: makeSegments([
+        ['running', 360, 510], ['fault', 510, 560], ['stopped', 560, 600],
+        ['running', 600, 750], ['disconnected', 750, 780], ['running', 780, 840],
+      ]),
+    },
+    {
+      machineId: 'line-1-m4', machineName: 'Processadora B',
+      segments: makeSegments([
+        ['setup', 360, 420], ['running', 420, 540], ['accumulation', 540, 570],
+        ['running', 570, 690], ['shortage', 690, 710], ['running', 710, 840],
+      ]),
+    },
+    {
+      machineId: 'line-1-m5', machineName: 'Embaladora',
+      segments: makeSegments([
+        ['running', 360, 480], ['scheduled', 480, 510], ['running', 510, 660],
+        ['fault', 660, 680], ['running', 680, 840],
+      ]),
+    },
+  ],
+  'line-2': [
+    {
+      machineId: 'line-2-m1', machineName: 'Alimentador',
+      segments: makeSegments([['running', 360, 600], ['shortage', 600, 630], ['running', 630, 840]]),
+    },
+    {
+      machineId: 'line-2-m2', machineName: 'Processadora A',
+      segments: makeSegments([['running', 360, 500], ['fault', 500, 530], ['running', 530, 840]]),
+    },
+    {
+      machineId: 'line-2-m3', machineName: 'Inspeção Visual',
+      segments: makeSegments([['running', 360, 840]]),
+    },
+    {
+      machineId: 'line-2-m4', machineName: 'Processadora B',
+      segments: makeSegments([['running', 360, 450], ['setup', 450, 480], ['running', 480, 840]]),
+    },
+    {
+      machineId: 'line-2-m5', machineName: 'Embaladora',
+      segments: makeSegments([['running', 360, 700], ['accumulation', 700, 730], ['running', 730, 840]]),
+    },
+  ],
+};

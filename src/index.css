@@ -40,6 +40,11 @@
     --status-stopped: 0 72% 50%;
     --status-setup: 38 92% 50%;
     --status-idle: 0 0% 55%;
+    --status-accumulation: 35 60% 35%;
+    --status-shortage: 38 95% 55%;
+    --status-fault: 0 72% 42%;
+    --status-scheduled: 210 55% 50%;
+    --status-disconnected: 0 0% 72%;
     --oee-excellent: 142 50% 32%;
     --oee-good: 80 45% 35%;
     --oee-warning: 38 85% 42%;
@@ -80,6 +85,11 @@
     --status-stopped: 0 62% 55%;
     --status-setup: 38 90% 55%;
     --status-idle: 0 0% 40%;
+    --status-accumulation: 35 55% 42%;
+    --status-shortage: 38 90% 55%;
+    --status-fault: 0 65% 50%;
+    --status-scheduled: 210 50% 55%;
+    --status-disconnected: 0 0% 45%;
     --oee-excellent: 142 50% 50%;
     --oee-good: 80 45% 48%;
     --oee-warning: 38 85% 52%;
