@@ -1,4 +1,4 @@
-import { Machine, ProductionLine, Stop, DLIDataPoint, OEEHistoryPoint } from '@/types/production';
+import { Machine, ProductionLine, Stop, DLIDataPoint, OEEHistoryPoint, Site, Equipment, ProductionFlow } from '@/types/production';
 
 const createMachines = (lineId: string): Machine[] => [
   {
@@ -33,9 +33,19 @@ const createMachines = (lineId: string): Machine[] => [
   },
 ];
 
+export const mockSites: Site[] = [
+  {
+    id: 'site-1',
+    name: 'Planta São Paulo',
+    location: 'São Paulo, SP',
+    lines: ['line-1', 'line-2'],
+  },
+];
+
 export const mockLines: ProductionLine[] = [
   {
     id: 'line-1', name: 'Linha 01 — Envase', type: 'Envase',
+    siteId: 'site-1',
     nominalSpeed: 500,
     machines: createMachines('line-1'),
     oee: { availability: 81.4, performance: 87, quality: 97.8, oee: 69.2 },
@@ -43,6 +53,7 @@ export const mockLines: ProductionLine[] = [
   },
   {
     id: 'line-2', name: 'Linha 02 — Montagem', type: 'Montagem',
+    siteId: 'site-1',
     nominalSpeed: 300,
     machines: createMachines('line-2').map(m => ({
       ...m, lineId: 'line-2', id: m.id.replace('line-1', 'line-2'),
@@ -50,6 +61,37 @@ export const mockLines: ProductionLine[] = [
     })),
     oee: { availability: 88, performance: 82, quality: 96, oee: 69.3 },
     throughput: 245,
+  },
+];
+
+export const mockEquipments: Equipment[] = [
+  { id: 'eq-1', name: 'Alimentador', type: 'Feeder', lineId: 'line-1', position: 1, nominalSpeed: 500 },
+  { id: 'eq-2', name: 'Processadora A', type: 'Processor', lineId: 'line-1', position: 2, nominalSpeed: 500 },
+  { id: 'eq-3', name: 'Inspeção Visual', type: 'Inspection', lineId: 'line-1', position: 3, nominalSpeed: 500 },
+  { id: 'eq-4', name: 'Processadora B', type: 'Processor', lineId: 'line-1', position: 4, nominalSpeed: 500 },
+  { id: 'eq-5', name: 'Embaladora', type: 'Packer', lineId: 'line-1', position: 5, nominalSpeed: 500 },
+  { id: 'eq-6', name: 'Alimentador', type: 'Feeder', lineId: 'line-2', position: 1, nominalSpeed: 300 },
+  { id: 'eq-7', name: 'Processadora A', type: 'Processor', lineId: 'line-2', position: 2, nominalSpeed: 300 },
+  { id: 'eq-8', name: 'Inspeção Visual', type: 'Inspection', lineId: 'line-2', position: 3, nominalSpeed: 300 },
+  { id: 'eq-9', name: 'Processadora B', type: 'Processor', lineId: 'line-2', position: 4, nominalSpeed: 300 },
+  { id: 'eq-10', name: 'Embaladora', type: 'Packer', lineId: 'line-2', position: 5, nominalSpeed: 300 },
+];
+
+export const mockFlows: ProductionFlow[] = [
+  {
+    id: 'flow-1', name: 'Fluxo Principal', lineId: 'line-1',
+    equipmentIds: ['eq-1', 'eq-2', 'eq-3', 'eq-4', 'eq-5'],
+    normalizer: 'unidades', nominalSpeed: 500,
+  },
+  {
+    id: 'flow-2', name: 'Fluxo Alternativo', lineId: 'line-1',
+    equipmentIds: ['eq-1', 'eq-2', 'eq-5'],
+    normalizer: 'kg', nominalSpeed: 350,
+  },
+  {
+    id: 'flow-3', name: 'Fluxo Principal', lineId: 'line-2',
+    equipmentIds: ['eq-6', 'eq-7', 'eq-8', 'eq-9', 'eq-10'],
+    normalizer: 'unidades', nominalSpeed: 300,
   },
 ];
 
