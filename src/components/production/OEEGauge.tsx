@@ -15,16 +15,16 @@ function getOEEColor(value: number): string {
 
 export function OEEGauge({ value, label, size = 'md' }: OEEGaugeProps) {
   const sizeClasses = {
-    sm: 'h-16 w-16 text-lg',
-    md: 'h-24 w-24 text-2xl',
-    lg: 'h-32 w-32 text-4xl',
+    sm: 'h-14 w-14 text-sm',
+    md: 'h-20 w-20 text-xl',
+    lg: 'h-28 w-28 text-3xl',
   };
 
-  const radius = size === 'sm' ? 24 : size === 'md' ? 38 : 52;
+  const radius = size === 'sm' ? 22 : size === 'md' ? 34 : 48;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (value / 100) * circumference;
-  const svgSize = size === 'sm' ? 64 : size === 'md' ? 96 : 128;
-  const stroke = size === 'sm' ? 4 : 6;
+  const svgSize = size === 'sm' ? 56 : size === 'md' ? 80 : 112;
+  const stroke = size === 'sm' ? 3 : 4;
 
   return (
     <div className="flex flex-col items-center gap-1">
@@ -32,7 +32,7 @@ export function OEEGauge({ value, label, size = 'md' }: OEEGaugeProps) {
         <svg className="absolute -rotate-90" width={svgSize} height={svgSize}>
           <circle
             cx={svgSize / 2} cy={svgSize / 2} r={radius}
-            fill="none" stroke="hsl(var(--muted))" strokeWidth={stroke}
+            fill="none" stroke="hsl(var(--border))" strokeWidth={stroke}
           />
           <circle
             cx={svgSize / 2} cy={svgSize / 2} r={radius}
@@ -42,14 +42,14 @@ export function OEEGauge({ value, label, size = 'md' }: OEEGaugeProps) {
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
-            style={{ transition: 'stroke-dashoffset 1s ease-in-out' }}
+            style={{ transition: 'stroke-dashoffset 0.8s ease-out' }}
           />
         </svg>
-        <span className={cn('font-mono font-bold', getOEEColor(value))}>
+        <span className={cn('font-semibold tabular-nums', getOEEColor(value))}>
           {value.toFixed(1)}
         </span>
       </div>
-      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
+      <span className="text-[10px] text-muted-foreground">
         {label}
       </span>
     </div>

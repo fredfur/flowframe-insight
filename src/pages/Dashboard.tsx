@@ -1,25 +1,23 @@
 import { mockLines, mockOEEHistory, mockDLIData, mockParetoData } from '@/data/mockData';
 import { OEEGauge } from '@/components/production/OEEGauge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area, ResponsiveContainer } from 'recharts';
-import { motion } from 'framer-motion';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
 import { Factory, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
 
 const oeeChartConfig = {
-  oee: { label: 'OEE', color: 'hsl(142, 60%, 50%)' },
-  availability: { label: 'Disponibilidade', color: 'hsl(200, 80%, 50%)' },
-  performance: { label: 'Performance', color: 'hsl(38, 95%, 55%)' },
-  quality: { label: 'Qualidade', color: 'hsl(280, 60%, 55%)' },
+  oee: { label: 'OEE', color: 'hsl(var(--primary))' },
+  availability: { label: 'Disponibilidade', color: 'hsl(200 70% 50%)' },
+  performance: { label: 'Performance', color: 'hsl(38 90% 55%)' },
+  quality: { label: 'Qualidade', color: 'hsl(280 60% 55%)' },
 };
 
 const dliChartConfig = {
-  throughput: { label: 'Vazão Real', color: 'hsl(142, 60%, 50%)' },
-  target: { label: 'Meta', color: 'hsl(0, 0%, 50%)' },
+  throughput: { label: 'Vazão Real', color: 'hsl(var(--primary))' },
+  target: { label: 'Meta', color: 'hsl(var(--muted-foreground))' },
 };
 
 const paretoConfig = {
-  minutes: { label: 'Minutos', color: 'hsl(0, 72%, 55%)' },
+  minutes: { label: 'Minutos', color: 'hsl(var(--destructive))' },
 };
 
 export default function Dashboard() {
@@ -28,115 +26,94 @@ export default function Dashboard() {
   const totalStoppedMachines = mockLines.reduce((sum, l) => sum + l.machines.filter(m => m.status === 'stopped').length, 0);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-bold text-foreground">Dashboard do Gestor</h1>
+    <div className="space-y-5">
+      <h1 className="text-base font-semibold text-foreground">Dashboard</h1>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryCard icon={Factory} label="Linhas Ativas" value={String(mockLines.length)} delay={0} />
-        <SummaryCard icon={TrendingUp} label="OEE Médio" value={`${totalOEE.toFixed(1)}%`} delay={0.1} />
-        <SummaryCard icon={Zap} label="Vazão Total" value={`${totalThroughput} u/h`} delay={0.2} />
-        <SummaryCard icon={AlertTriangle} label="Máquinas Paradas" value={String(totalStoppedMachines)} delay={0.3} destructive={totalStoppedMachines > 0} />
+      {/* Summary */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+        <SummaryCard icon={Factory} label="Linhas Ativas" value={String(mockLines.length)} />
+        <SummaryCard icon={TrendingUp} label="OEE Médio" value={`${totalOEE.toFixed(1)}%`} />
+        <SummaryCard icon={Zap} label="Vazão Total" value={`${totalThroughput} u/h`} />
+        <SummaryCard icon={AlertTriangle} label="Máquinas Paradas" value={String(totalStoppedMachines)} destructive={totalStoppedMachines > 0} />
       </div>
 
       {/* OEE per line */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {mockLines.map((line) => (
-          <Card key={line.id} className="bg-card border-border">
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-sm font-semibold">{line.name}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0 flex items-center gap-6">
+          <div key={line.id} className="rounded-lg border bg-card p-4">
+            <p className="text-[12px] font-medium text-foreground mb-3">{line.name}</p>
+            <div className="flex items-center gap-5">
               <OEEGauge value={line.oee.oee} label="OEE" size="md" />
-              <div className="grid grid-cols-3 gap-3 flex-1">
+              <div className="grid grid-cols-3 gap-2 flex-1">
                 <OEEGauge value={line.oee.availability} label="Disp." size="sm" />
                 <OEEGauge value={line.oee.performance} label="Perf." size="sm" />
                 <OEEGauge value={line.oee.quality} label="Qual." size="sm" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ))}
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* OEE History */}
-        <Card className="bg-card border-border">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm font-semibold">OEE — Última Semana</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <ChartContainer config={oeeChartConfig} className="h-[250px]">
-              <AreaChart data={mockOEEHistory}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="time" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Area type="monotone" dataKey="oee" stroke="hsl(142, 60%, 50%)" fill="hsl(142, 60%, 50%)" fillOpacity={0.15} strokeWidth={2} />
-                <Area type="monotone" dataKey="availability" stroke="hsl(200, 80%, 50%)" fill="transparent" strokeWidth={1} strokeDasharray="4 2" />
-                <Area type="monotone" dataKey="performance" stroke="hsl(38, 95%, 55%)" fill="transparent" strokeWidth={1} strokeDasharray="4 2" />
-              </AreaChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="rounded-lg border bg-card p-4">
+          <p className="text-[11px] text-muted-foreground mb-3">OEE — Última Semana</p>
+          <ChartContainer config={oeeChartConfig} className="h-[220px]">
+            <AreaChart data={mockOEEHistory}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="time" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Area type="monotone" dataKey="oee" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.08} strokeWidth={1.5} />
+              <Area type="monotone" dataKey="availability" stroke="hsl(200 70% 50%)" fill="transparent" strokeWidth={1} strokeDasharray="4 2" />
+              <Area type="monotone" dataKey="performance" stroke="hsl(38 90% 55%)" fill="transparent" strokeWidth={1} strokeDasharray="4 2" />
+            </AreaChart>
+          </ChartContainer>
+        </div>
 
-        {/* DLI / Throughput */}
-        <Card className="bg-card border-border">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm font-semibold">Vazão (DLI) — Hoje</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <ChartContainer config={dliChartConfig} className="h-[250px]">
-              <LineChart data={mockDLIData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="time" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line type="monotone" dataKey="throughput" stroke="hsl(142, 60%, 50%)" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="target" stroke="hsl(0, 0%, 50%)" strokeWidth={1} strokeDasharray="6 3" dot={false} />
-              </LineChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+        <div className="rounded-lg border bg-card p-4">
+          <p className="text-[11px] text-muted-foreground mb-3">Vazão (DLI) — Hoje</p>
+          <ChartContainer config={dliChartConfig} className="h-[220px]">
+            <LineChart data={mockDLIData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="time" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
+              <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Line type="monotone" dataKey="throughput" stroke="hsl(var(--primary))" strokeWidth={1.5} dot={false} />
+              <Line type="monotone" dataKey="target" stroke="hsl(var(--muted-foreground))" strokeWidth={1} strokeDasharray="6 3" dot={false} />
+            </LineChart>
+          </ChartContainer>
+        </div>
 
-        {/* Pareto */}
-        <Card className="bg-card border-border lg:col-span-2">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm font-semibold">Pareto de Paradas — Tempo Total (min)</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <ChartContainer config={paretoConfig} className="h-[250px]">
-              <BarChart data={mockParetoData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="category" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="minutes" fill="hsl(0, 72%, 55%)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+        <div className="rounded-lg border bg-card p-4 lg:col-span-2">
+          <p className="text-[11px] text-muted-foreground mb-3">Pareto de Paradas — Tempo Total (min)</p>
+          <ChartContainer config={paretoConfig} className="h-[220px]">
+            <BarChart data={mockParetoData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="category" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
+              <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Bar dataKey="minutes" fill="hsl(var(--destructive))" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ChartContainer>
+        </div>
       </div>
     </div>
   );
 }
 
-function SummaryCard({ icon: Icon, label, value, delay, destructive }: {
-  icon: typeof Factory; label: string; value: string; delay: number; destructive?: boolean;
+function SummaryCard({ icon: Icon, label, value, destructive }: {
+  icon: typeof Factory; label: string; value: string; destructive?: boolean;
 }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}>
-      <Card className="bg-card border-border">
-        <CardContent className="p-4 flex items-center gap-3">
-          <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${destructive ? 'bg-destructive/10' : 'bg-primary/10'}`}>
-            <Icon className={`h-5 w-5 ${destructive ? 'text-destructive' : 'text-primary'}`} />
-          </div>
-          <div>
-            <p className="text-2xl font-mono font-bold text-foreground">{value}</p>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+    <div className="rounded-lg border bg-card px-4 py-3 flex items-center gap-3">
+      <div className={`flex h-8 w-8 items-center justify-center rounded-md ${destructive ? 'bg-destructive/10' : 'bg-primary/10'}`}>
+        <Icon className={`h-4 w-4 ${destructive ? 'text-destructive' : 'text-primary'}`} />
+      </div>
+      <div>
+        <p className="text-lg font-semibold tabular-nums text-foreground">{value}</p>
+        <p className="text-[10px] text-muted-foreground">{label}</p>
+      </div>
+    </div>
   );
 }
