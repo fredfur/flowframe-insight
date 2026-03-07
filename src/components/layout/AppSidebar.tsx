@@ -35,7 +35,7 @@ export function AppSidebar() {
       <SidebarHeader className="px-3 py-3">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <Factory className="h-4 w-4 text-primary" />
+            <Factory className="text-primary" style={{ width: '1.3rem', height: '1.3rem' }} />
           </div>
           {!collapsed && (
             <span className="text-sm font-semibold text-foreground tracking-tight">FlowVision</span>
@@ -77,7 +77,7 @@ export function AppSidebar() {
               onClick={() => navigate('/login')}
               className="text-sidebar-foreground hover:text-destructive transition-colors"
             >
-              <LogOut className="h-4 w-4 shrink-0" />
+              <LogOut className="shrink-0" style={{ width: '1.3rem', height: '1.3rem' }} />
               <span>Sair</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
