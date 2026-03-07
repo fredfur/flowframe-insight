@@ -135,6 +135,7 @@ export default function LineLive() {
         <AIInsightCards insights={MOCK_LINELIVE_INSIGHTS} onAskAI={askAI} />
 
         {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="rounded-lg border bg-card p-4">
             <p className="text-sm font-medium text-foreground mb-4">V-Graph — Vazão por Máquina</p>
             <ChartContainer config={vGraphConfig} className="h-[200px] w-full">
