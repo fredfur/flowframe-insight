@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { Machine } from '@/types/production';
+import { Machine, MachineStatus } from '@/types/production';
 import { ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 
 // Timeline status — richer than MachineStatus for operational context
-export type TimelineStatus = 'running' | 'stopped' | 'fault' | 'shortage' | 'accumulation' | 'scheduled' | 'setup' | 'disconnected';
+// Re-export MachineStatus as TimelineStatus — they are the same
+export type TimelineStatus = MachineStatus;
 
 export interface TimelineSegment {
   status: TimelineStatus;
