@@ -11,7 +11,8 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
 
 const vGraphConfig = {
-  throughput: { label: 'Vazão', color: 'hsl(var(--primary))' },
+  throughput: { label: 'Vazão Real', color: 'hsl(var(--primary))' },
+  nominal: { label: 'Vel. Nominal', color: 'hsl(var(--muted-foreground))' },
 };
 const dliConfig = {
   throughput: { label: 'Vazão Real', color: 'hsl(var(--primary))' },
@@ -139,7 +140,7 @@ export default function LineLive() {
                 <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="throughput" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="nominal" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="nominal" fill="hsl(var(--muted-foreground) / 0.45)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ChartContainer>
           </div>
