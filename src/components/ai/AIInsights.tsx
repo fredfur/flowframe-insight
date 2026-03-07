@@ -136,7 +136,7 @@ export function AIInsightChip({
         )}
       >
         <Icon className="h-2.5 w-2.5" />
-        <span className="truncate max-w-[120px]">{insight.title}</span>
+        <span className="whitespace-nowrap">{insight.title}</span>
         {insight.metric && (
           <span className="font-semibold tabular-nums">{insight.metric}</span>
         )}
