@@ -11,7 +11,8 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
 
 const vGraphConfig = {
-  throughput: { label: 'Vazão', color: 'hsl(var(--primary))' },
+  throughput: { label: 'Vazão Real', color: 'hsl(var(--primary))' },
+  nominal: { label: 'Vel. Nominal', color: 'hsl(var(--muted-foreground))' },
 };
 const dliConfig = {
   throughput: { label: 'Vazão Real', color: 'hsl(var(--primary))' },
