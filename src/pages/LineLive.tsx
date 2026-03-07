@@ -63,9 +63,9 @@ export default function LineLive() {
               <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-disconnected" /> Desconectado</span>
             </div>
           </div>
-          <div className="flex items-start overflow-x-auto pb-2 rounded-lg border bg-card p-4">
+          <div className="flex items-start gap-0 overflow-x-auto pb-2 rounded-lg border bg-card p-4 w-full">
             {sortedMachines.map((machine, i) => (
-              <div key={machine.id} className="flex items-start">
+              <div key={machine.id} className="flex items-start flex-1 min-w-0">
                 <MachineNode
                   machine={machine}
                   onClick={setSelectedMachine}
@@ -81,8 +81,8 @@ export default function LineLive() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="rounded-lg border bg-card p-4">
             <p className="text-sm font-medium text-foreground mb-4">V-Graph — Vazão por Máquina</p>
-            <ChartContainer config={vGraphConfig} className="h-[200px]">
-              <BarChart data={vGraphData}>
+            <ChartContainer config={vGraphConfig} className="h-[200px] w-full">
+              <BarChart data={vGraphData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
                 <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
@@ -95,8 +95,8 @@ export default function LineLive() {
 
           <div className="rounded-lg border bg-card p-4">
             <p className="text-sm font-medium text-foreground mb-4">Produção — Vazão ao Longo do Dia</p>
-            <ChartContainer config={dliConfig} className="h-[200px]">
-              <LineChart data={mockDLIData}>
+            <ChartContainer config={dliConfig} className="h-[200px] w-full">
+              <LineChart data={mockDLIData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="time" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" interval={3} />
                 <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
