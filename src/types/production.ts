@@ -1,4 +1,4 @@
-export type MachineStatus = 'running' | 'stopped' | 'fault' | 'shortage' | 'accumulation' | 'scheduled' | 'setup' | 'disconnected';
+export type MachineStatus = 'running' | 'fault' | 'shortage' | 'accumulation' | 'scheduled' | 'setup' | 'disconnected';
 
 export interface Site {
   id: string;

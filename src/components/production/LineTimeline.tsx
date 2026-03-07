@@ -3,13 +3,11 @@ import { cn } from '@/lib/utils';
 import { Machine, MachineStatus } from '@/types/production';
 import { ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 
-// Timeline status — richer than MachineStatus for operational context
-// Re-export MachineStatus as TimelineStatus — they are the same
 export type TimelineStatus = MachineStatus;
 
 export interface TimelineSegment {
   status: TimelineStatus;
-  startMin: number; // minutes from shift start
+  startMin: number;
   endMin: number;
 }
 
@@ -21,26 +19,24 @@ export interface MachineTimeline {
 
 const STATUS_META: Record<TimelineStatus, { label: string; colorClass: string }> = {
   running:      { label: 'Produzindo',    colorClass: 'bg-status-running' },
-  stopped:      { label: 'Parada',        colorClass: 'bg-status-stopped' },
   fault:        { label: 'Falha',         colorClass: 'bg-status-fault' },
   shortage:     { label: 'Falta',         colorClass: 'bg-status-shortage' },
   accumulation: { label: 'Acúmulo',       colorClass: 'bg-status-accumulation' },
   scheduled:    { label: 'Programada',    colorClass: 'bg-status-scheduled' },
   setup:        { label: 'Setup',         colorClass: 'bg-status-setup' },
-  disconnected: { label: 'Desconectado', colorClass: 'bg-status-disconnected' },
+  disconnected: { label: 'Desconectado',  colorClass: 'bg-status-disconnected' },
 };
 
-// Shift definitions (minutes from midnight)
 const SHIFTS = [
   { label: '1º Turno', startMin: 6 * 60, endMin: 14 * 60 },
   { label: '2º Turno', startMin: 14 * 60, endMin: 22 * 60 },
-  { label: '3º Turno', startMin: 22 * 60, endMin: 30 * 60 }, // wraps midnight
+  { label: '3º Turno', startMin: 22 * 60, endMin: 30 * 60 },
 ];
 
 interface LineTimelineProps {
   machines: Machine[];
   timelines: MachineTimeline[];
-  shiftIndex?: number; // which shift to show, default current
+  shiftIndex?: number;
 }
 
 function getShiftRange(shiftIdx: number) {
@@ -54,9 +50,8 @@ function formatTime(minutes: number) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-/** Aggregate: at each minute, the "worst" status across all machines */
 function aggregateTimelines(timelines: MachineTimeline[], start: number, end: number): TimelineSegment[] {
-  const priority: TimelineStatus[] = ['disconnected', 'fault', 'stopped', 'shortage', 'accumulation', 'setup', 'scheduled', 'running'];
+  const priority: TimelineStatus[] = ['disconnected', 'fault', 'shortage', 'accumulation', 'setup', 'scheduled', 'running'];
 
   const worstAtMinute = (min: number): TimelineStatus => {
     let worst: TimelineStatus = 'running';
@@ -98,7 +93,6 @@ function TimelineBar({ segments, start, totalMin, height = 'h-5' }: { segments: 
   return (
     <div className={cn('w-full rounded-sm overflow-hidden flex', height)}>
       {segments.map((seg, i) => {
-        const left = ((seg.startMin - start) / totalMin) * 100;
         const width = ((seg.endMin - seg.startMin) / totalMin) * 100;
         if (width <= 0) return null;
         return (
@@ -114,10 +108,29 @@ function TimelineBar({ segments, start, totalMin, height = 'h-5' }: { segments: 
   );
 }
 
+/** Shared time axis rendered once below all bars */
+function TimeAxis({ ticks, start, totalMin }: { ticks: number[]; start: number; totalMin: number }) {
+  return (
+    <div className="relative h-4 mt-1">
+      {ticks.map((m) => (
+        <span
+          key={m}
+          className="absolute text-[10px] text-muted-foreground tabular-nums -translate-x-1/2"
+          style={{ left: `${((m - start) / totalMin) * 100}%` }}
+        >
+          {formatTime(m)}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// Width of the machine name labels — swimlane bars are offset by this
+const LABEL_W = 'w-24';
+
 export function LineTimeline({ machines, timelines, shiftIndex }: LineTimelineProps) {
   const [expanded, setExpanded] = useState(false);
 
-  // Auto-detect current shift
   const now = new Date();
   const currentMin = now.getHours() * 60 + now.getMinutes();
   const autoShift = SHIFTS.findIndex(s => {
@@ -132,7 +145,6 @@ export function LineTimeline({ machines, timelines, shiftIndex }: LineTimelinePr
     [timelines, start, end]
   );
 
-  // Time axis ticks (every hour)
   const ticks = useMemo(() => {
     const t: number[] = [];
     const firstHour = Math.ceil(start / 60) * 60;
@@ -144,7 +156,7 @@ export function LineTimeline({ machines, timelines, shiftIndex }: LineTimelinePr
     <div className="rounded-lg border bg-card p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-status-stopped" />
+          <AlertTriangle className="h-4 w-4 text-status-fault" />
           <p className="text-sm font-medium text-foreground">Visão de Status</p>
           <span className="text-xs text-muted-foreground">· {shiftLabel}</span>
         </div>
@@ -157,39 +169,43 @@ export function LineTimeline({ machines, timelines, shiftIndex }: LineTimelinePr
         </button>
       </div>
 
-      {/* Aggregated bar */}
-      <div className="mb-1">
-        <p className="text-[11px] text-muted-foreground mb-1">Linha (agregado)</p>
-        <TimelineBar segments={aggregated} start={start} totalMin={totalMin} height="h-6" />
-      </div>
-
-      {/* Expanded swimlanes */}
-      {expanded && (
-        <div className="mt-3 space-y-1.5">
-          {timelines.map((tl) => (
-            <div key={tl.machineId} className="flex items-center gap-2">
-              <span className="text-[10px] text-muted-foreground w-20 truncate shrink-0 text-right tabular-nums">
-                {tl.machineName}
-              </span>
-              <div className="flex-1">
-                <TimelineBar segments={tl.segments} start={start} totalMin={totalMin} height="h-3.5" />
-              </div>
-            </div>
-          ))}
+      {/* All bars share the same horizontal grid — labels offset on the left */}
+      <div>
+        {/* Aggregated bar */}
+        <div className={cn('flex items-center gap-2', expanded && 'mb-2')}>
+          {expanded && (
+            <span className={cn(LABEL_W, 'shrink-0 text-[10px] text-muted-foreground text-right truncate')}>
+              Linha
+            </span>
+          )}
+          <div className="flex-1">
+            <TimelineBar segments={aggregated} start={start} totalMin={totalMin} height={expanded ? 'h-5' : 'h-6'} />
+          </div>
         </div>
-      )}
 
-      {/* Time axis */}
-      <div className="relative h-4 mt-1">
-        {ticks.map((m) => (
-          <span
-            key={m}
-            className="absolute text-[10px] text-muted-foreground tabular-nums -translate-x-1/2"
-            style={{ left: `${((m - start) / totalMin) * 100}%` }}
-          >
-            {formatTime(m)}
-          </span>
-        ))}
+        {/* Expanded swimlanes — same width alignment */}
+        {expanded && (
+          <div className="space-y-1">
+            {timelines.map((tl) => (
+              <div key={tl.machineId} className="flex items-center gap-2">
+                <span className={cn(LABEL_W, 'shrink-0 text-[10px] text-muted-foreground text-right truncate tabular-nums')}>
+                  {tl.machineName}
+                </span>
+                <div className="flex-1">
+                  <TimelineBar segments={tl.segments} start={start} totalMin={totalMin} height="h-3.5" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Single shared time axis */}
+        <div className={cn('flex items-start gap-2', expanded && 'mt-0')}>
+          {expanded && <span className={cn(LABEL_W, 'shrink-0')} />}
+          <div className="flex-1">
+            <TimeAxis ticks={ticks} start={start} totalMin={totalMin} />
+          </div>
+        </div>
       </div>
 
       {/* Legend */}
