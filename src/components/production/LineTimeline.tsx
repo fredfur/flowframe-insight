@@ -199,6 +199,7 @@ export function LineTimeline({ machines, timelines, speedSamples, nominalSpeed, 
   const [zoomEnd, setZoomEnd] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<number | null>(null);
+  const [dragCurrent, setDragCurrent] = useState<number | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
   const isZoomed = zoomStart !== null && zoomEnd !== null;
@@ -244,8 +245,8 @@ export function LineTimeline({ machines, timelines, speedSamples, nominalSpeed, 
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging || dragStart === null) return;
-    // Show selection overlay handled by dragStart + current position
-  }, [isDragging, dragStart]);
+    setDragCurrent(xToMin(e.clientX));
+  }, [isDragging, dragStart, xToMin]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (!isDragging || dragStart === null) return;
@@ -253,12 +254,12 @@ export function LineTimeline({ machines, timelines, speedSamples, nominalSpeed, 
     setIsDragging(false);
     const minVal = Math.min(dragStart, dragEnd);
     const maxVal = Math.max(dragStart, dragEnd);
-    // Only zoom if selection is at least 10 minutes
     if (maxVal - minVal >= 10) {
       setZoomStart(minVal);
       setZoomEnd(maxVal);
     }
     setDragStart(null);
+    setDragCurrent(null);
   }, [isDragging, dragStart, xToMin]);
 
   // Zoom in/out buttons
@@ -375,7 +376,7 @@ export function LineTimeline({ machines, timelines, speedSamples, nominalSpeed, 
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
-            onMouseLeave={() => { if (isDragging) { setIsDragging(false); setDragStart(null); } }}
+            onMouseLeave={() => { if (isDragging) { setIsDragging(false); setDragStart(null); setDragCurrent(null); } }}
           >
             {ticks.map((m) => (
               <div
@@ -393,6 +394,46 @@ export function LineTimeline({ machines, timelines, speedSamples, nominalSpeed, 
                 nominalSpeed={nominalSpeed}
                 height={barHeightPx}
               />
+            )}
+            {/* Drag selection overlay */}
+            {isDragging && dragStart !== null && dragCurrent !== null && (
+              (() => {
+                const selLeft = Math.min(dragStart, dragCurrent);
+                const selRight = Math.max(dragStart, dragCurrent);
+                const leftPct = ((selLeft - viewStart) / viewTotal) * 100;
+                const widthPct = ((selRight - selLeft) / viewTotal) * 100;
+                return (
+                  <>
+                    {/* Dimmed areas outside selection */}
+                    <div
+                      className="absolute top-0 h-full bg-background/60 pointer-events-none"
+                      style={{ left: 0, width: `${Math.max(0, leftPct)}%` }}
+                    />
+                    <div
+                      className="absolute top-0 h-full bg-background/60 pointer-events-none"
+                      style={{ left: `${leftPct + widthPct}%`, right: 0 }}
+                    />
+                    {/* Selection highlight */}
+                    <div
+                      className="absolute top-0 h-full border-2 border-primary bg-primary/10 rounded-sm pointer-events-none"
+                      style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+                    />
+                    {/* Time labels on selection edges */}
+                    <span
+                      className="absolute -top-5 text-[9px] font-medium text-primary tabular-nums -translate-x-1/2 pointer-events-none"
+                      style={{ left: `${leftPct}%` }}
+                    >
+                      {formatTime(selLeft)}
+                    </span>
+                    <span
+                      className="absolute -top-5 text-[9px] font-medium text-primary tabular-nums -translate-x-1/2 pointer-events-none"
+                      style={{ left: `${leftPct + widthPct}%` }}
+                    >
+                      {formatTime(selRight)}
+                    </span>
+                  </>
+                );
+              })()
             )}
           </div>
         </div>
