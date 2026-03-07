@@ -9,6 +9,7 @@ import { useLineStore } from '@/stores/lineStore';
 import { useTheme } from 'next-themes';
 import { ConnectionIndicator } from './ConnectionIndicator';
 import { useEffect, useState } from 'react';
+import { AIChatAssistantWithRef } from '@/components/ai/AIInsights';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -100,6 +101,7 @@ export function AppLayout() {
             </div>
           </main>
         </div>
+        <AIChatAssistantWithRef />
       </div>
     </SidebarProvider>
   );

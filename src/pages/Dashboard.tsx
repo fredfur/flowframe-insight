@@ -3,6 +3,7 @@ import { OEEGauge } from '@/components/production/OEEGauge';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
 import { Factory, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
+import { AIInsightCards, MOCK_DASHBOARD_INSIGHTS, useChatAssistant } from '@/components/ai/AIInsights';
 
 const oeeChartConfig = {
   oee: { label: 'OEE', color: 'hsl(var(--primary))' },
@@ -21,6 +22,7 @@ const paretoConfig = {
 };
 
 export default function Dashboard() {
+  const { askAI } = useChatAssistant();
   const totalOEE = mockLines.reduce((sum, l) => sum + l.oee.oee, 0) / mockLines.length;
   const totalThroughput = mockLines.reduce((sum, l) => sum + l.throughput, 0);
   const totalStoppedMachines = mockLines.reduce((sum, l) => sum + l.machines.filter(m => m.status !== 'running').length, 0);
@@ -53,6 +55,9 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
+
+      {/* AI Insights */}
+      <AIInsightCards insights={MOCK_DASHBOARD_INSIGHTS} onAskAI={askAI} />
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
