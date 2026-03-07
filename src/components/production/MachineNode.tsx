@@ -1,13 +1,26 @@
 import { cn } from '@/lib/utils';
 import { Machine, MachineStatus } from '@/types/production';
 import { motion } from 'framer-motion';
-import { Cog, AlertTriangle, Wrench, Pause } from 'lucide-react';
 
-const statusConfig: Record<MachineStatus, { bg: string; glow: string; icon: typeof Cog; label: string }> = {
-  running: { bg: 'bg-status-running', glow: 'glow-green', icon: Cog, label: 'Rodando' },
-  stopped: { bg: 'bg-status-stopped', glow: 'glow-red', icon: AlertTriangle, label: 'Parada' },
-  setup: { bg: 'bg-status-setup', glow: 'glow-amber', icon: Wrench, label: 'Setup' },
-  idle: { bg: 'bg-status-idle', glow: '', icon: Pause, label: 'Ociosa' },
+const statusColors: Record<MachineStatus, string> = {
+  running: 'bg-status-running',
+  stopped: 'bg-status-stopped',
+  setup: 'bg-status-setup',
+  idle: 'bg-status-idle',
+};
+
+const statusBorders: Record<MachineStatus, string> = {
+  running: 'border-status-running/60',
+  stopped: 'border-status-stopped/60',
+  setup: 'border-status-setup/60',
+  idle: 'border-status-idle/60',
+};
+
+const statusLabels: Record<MachineStatus, string> = {
+  running: 'Produzindo',
+  stopped: 'Parada',
+  setup: 'Setup',
+  idle: 'Ociosa',
 };
 
 interface MachineNodeProps {
@@ -17,38 +30,45 @@ interface MachineNodeProps {
 }
 
 export function MachineNode({ machine, onClick, isSelected }: MachineNodeProps) {
-  const config = statusConfig[machine.status];
-  const StatusIcon = config.icon;
-
   return (
     <motion.button
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.97 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      whileHover={{ scale: 1.03, y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       onClick={() => onClick(machine)}
       className={cn(
-        'relative flex flex-col items-center justify-center rounded-xl border-2 bg-card p-4 w-[140px] h-[120px] cursor-pointer transition-all',
-        isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-border hover:border-muted-foreground/50',
-        config.glow,
+        'relative flex flex-col rounded-lg border-2 bg-card cursor-pointer transition-colors min-w-[120px]',
+        isSelected ? 'border-primary ring-2 ring-primary/20' : statusBorders[machine.status],
       )}
     >
-      <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg mb-2', config.bg)}>
-        <StatusIcon className={cn(
-          'h-4 w-4',
-          machine.status === 'running' ? 'text-primary-foreground animate-spin' : 'text-primary-foreground'
-        )} style={machine.status === 'running' ? { animationDuration: '3s' } : {}} />
+      {/* Status color bar at top */}
+      <div className={cn('h-1.5 w-full rounded-t-[5px]', statusColors[machine.status])} />
+
+      <div className="px-3 py-2.5 flex flex-col items-start gap-1">
+        <span className="text-[11px] font-semibold text-foreground leading-tight truncate w-full text-left">
+          {machine.name}
+        </span>
+        <div className="flex items-center justify-between w-full">
+          <span className="text-[10px] text-muted-foreground font-mono">DM</span>
+          <span className={cn(
+            'text-sm font-mono font-bold',
+            machine.oee.availability >= 90 ? 'text-oee-excellent' :
+            machine.oee.availability >= 70 ? 'text-oee-warning' : 'text-oee-critical'
+          )}>
+            {machine.oee.availability.toFixed(0)}%
+          </span>
+        </div>
+        <span className="text-[9px] text-muted-foreground font-mono">
+          {machine.status === 'running' ? `${machine.throughput} u/h` : statusLabels[machine.status]}
+        </span>
       </div>
-      <span className="text-xs font-semibold text-foreground truncate w-full text-center">
-        {machine.name}
-      </span>
-      <span className="text-[10px] text-muted-foreground font-mono mt-0.5">
-        {machine.status === 'running' ? `${machine.throughput} u/h` : config.label}
-      </span>
+
+      {/* Status dot */}
       <div className={cn(
-        'absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-card',
-        config.bg,
+        'absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-card',
+        statusColors[machine.status],
         machine.status === 'stopped' && 'animate-pulse-status',
       )} />
     </motion.button>
