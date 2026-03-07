@@ -3,6 +3,7 @@ import { Send, User, Sparkles, BarChart3, AlertTriangle, Zap, TrendingDown, Acti
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 import type { LucideIcon } from 'lucide-react';
 
@@ -432,7 +433,7 @@ export default function Assistente() {
                   {msg.role === 'assistant' ? (
                     <>
                       <div className="prose prose-sm dark:prose-invert prose-p:my-1 prose-li:my-0.5 prose-headings:my-2 prose-table:my-2 max-w-none text-xs">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                       </div>
                       {msg.chart && <InlineChart chart={msg.chart} />}
                       {msg.followUps && msg.followUps.length > 0 && (
