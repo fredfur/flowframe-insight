@@ -159,8 +159,8 @@ export function AIInsightCards({
             <div
               key={insight.id}
               className={cn(
-                'rounded-lg border p-3 transition-all cursor-pointer',
-                style.border, style.bg,
+                'rounded-lg p-3 transition-all cursor-pointer',
+                style.bg,
                 isExpanded && 'shadow-sm',
               )}
               onClick={() => setExpandedId(isExpanded ? null : insight.id)}
