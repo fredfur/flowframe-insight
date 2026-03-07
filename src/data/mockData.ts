@@ -1,4 +1,4 @@
-import { Machine, ProductionLine, Stop, DLIDataPoint, OEEHistoryPoint, Site, Equipment, ProductionFlow } from '@/types/production';
+import { Machine, ProductionLine, Stop, DLIDataPoint, OEEHistoryPoint, Site, Equipment, ProductionFlow, Transport } from '@/types/production';
 import { MachineTimeline, TimelineSegment, TimelineStatus, SpeedSample } from '@/components/production/LineTimeline';
 
 const createMachines = (lineId: string): Machine[] => [
@@ -34,6 +34,13 @@ const createMachines = (lineId: string): Machine[] => [
   },
 ];
 
+const createTransports = (lineId: string): Transport[] => [
+  { id: `${lineId}-t1`, fromPosition: 1, toPosition: 2, lineId, type: 'conveyor', accumulation: 'normal', accumulationPercent: 45, capacity: 50, currentUnits: 22 },
+  { id: `${lineId}-t2`, fromPosition: 2, toPosition: 3, lineId, type: 'conveyor', accumulation: 'high', accumulationPercent: 78, capacity: 40, currentUnits: 31 },
+  { id: `${lineId}-t3`, fromPosition: 3, toPosition: 4, lineId, type: 'buffer', accumulation: 'critical', accumulationPercent: 95, capacity: 60, currentUnits: 57 },
+  { id: `${lineId}-t4`, fromPosition: 4, toPosition: 5, lineId, type: 'conveyor', accumulation: 'low', accumulationPercent: 15, capacity: 30, currentUnits: 5 },
+];
+
 export const mockSites: Site[] = [
   {
     id: 'site-1',
@@ -49,6 +56,7 @@ export const mockLines: ProductionLine[] = [
     siteId: 'site-1',
     nominalSpeed: 500,
     machines: createMachines('line-1'),
+    transports: createTransports('line-1'),
     oee: { availability: 81.4, performance: 87, quality: 97.8, oee: 69.2 },
     throughput: 380,
   },
@@ -60,6 +68,7 @@ export const mockLines: ProductionLine[] = [
       ...m, lineId: 'line-2', id: m.id.replace('line-1', 'line-2'),
       status: m.position === 3 ? 'running' as const : m.status,
     })),
+    transports: createTransports('line-2').map(t => ({ ...t, lineId: 'line-2', id: t.id.replace('line-1', 'line-2') })),
     oee: { availability: 88, performance: 82, quality: 96, oee: 69.3 },
     throughput: 245,
   },

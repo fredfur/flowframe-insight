@@ -97,7 +97,7 @@ export default function Configuracoes() {
       if (dialogMode === 'create') {
         const newLine: ProductionLine = {
           id, name: formName, type: formType, siteId: dialogContext,
-          nominalSpeed: Number(formNominal) || 0, machines: [],
+          nominalSpeed: Number(formNominal) || 0, machines: [], transports: [],
           oee: { availability: 0, performance: 0, quality: 0, oee: 0 }, throughput: 0,
         };
         setLines(prev => [...prev, newLine]);
