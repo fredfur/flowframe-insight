@@ -27,24 +27,21 @@ interface ChatMessage {
 
 export const MOCK_DASHBOARD_INSIGHTS: AIInsight[] = [
   {
-    id: 'di-1',
-    type: 'warning',
+    id: 'di-1', type: 'warning', timestamp: new Date(),
     title: 'OEE em queda na Linha 01',
     summary: 'O OEE caiu 8.2% nas últimas 4 horas, puxado por disponibilidade. A Processadora B acumula 3 paradas de manutenção não planejada.',
     detail: 'Recomendação: avaliar manutenção preventiva na Processadora B. Historicamente, esse equipamento apresenta falhas recorrentes após 120h de operação contínua.',
     metric: '-8.2%',
   },
   {
-    id: 'di-2',
-    type: 'opportunity',
+    id: 'di-2', type: 'opportunity', timestamp: new Date(),
     title: 'Setup pode ser otimizado',
     summary: 'O tempo médio de setup aumentou 40% nesta semana. SKU-204 leva 25min vs. média de 15min.',
     detail: 'Sugestão: padronizar procedimento SMED para troca do SKU-204. Times do 2º turno apresentam tempo 30% menor — considerar treinamento cruzado.',
     metric: '+40%',
   },
   {
-    id: 'di-3',
-    type: 'info',
+    id: 'di-3', type: 'info', timestamp: new Date(),
     title: 'Melhor turno: 1º Turno',
     summary: 'O 1º turno mantém OEE 12% acima da média geral. Performance e qualidade consistentes.',
   },
@@ -52,16 +49,14 @@ export const MOCK_DASHBOARD_INSIGHTS: AIInsight[] = [
 
 export const MOCK_LINELIVE_INSIGHTS: AIInsight[] = [
   {
-    id: 'li-1',
-    type: 'warning',
+    id: 'li-1', type: 'warning', timestamp: new Date(),
     title: 'Gargalo detectado na Inspeção Visual',
     summary: 'A Inspeção Visual opera a 70% de disponibilidade, limitando a vazão da linha inteira. As demais máquinas estão acima de 90%.',
     detail: 'A máquina está em falha desde 08:30. Sensor de câmera com problema. Impacto estimado: -150 u/h na vazão da linha.',
     metric: '70%',
   },
   {
-    id: 'li-2',
-    type: 'opportunity',
+    id: 'li-2', type: 'opportunity', timestamp: new Date(),
     title: 'Acúmulo crescente pré-Embaladora',
     summary: 'O buffer entre Processadora B e Embaladora está a 95% de capacidade. Risco de parada por acúmulo nos próximos 10min.',
     detail: 'A Embaladora está a 92% de disponibilidade mas com velocidade 8% abaixo do nominal. Ajustar velocidade pode prevenir overflow.',
