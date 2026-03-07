@@ -3,7 +3,7 @@ import { OEEGauge } from '@/components/production/OEEGauge';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
 import { Factory, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
-import { AIInsightCards, MOCK_DASHBOARD_INSIGHTS, useChatAssistant } from '@/components/ai/AIInsights';
+import { AIInsightChips, MOCK_DASHBOARD_INSIGHTS, useChatAssistant } from '@/components/ai/AIInsights';
 
 const oeeChartConfig = {
   oee: { label: 'OEE', color: 'hsl(var(--primary))' },
@@ -29,7 +29,10 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-base font-semibold text-foreground">Dashboard</h1>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <h1 className="text-base font-semibold text-foreground">Dashboard</h1>
+        <AIInsightChips insights={MOCK_DASHBOARD_INSIGHTS} onAskAI={askAI} />
+      </div>
 
       {/* Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
@@ -56,8 +59,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* AI Insights */}
-      <AIInsightCards insights={MOCK_DASHBOARD_INSIGHTS} onAskAI={askAI} />
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
