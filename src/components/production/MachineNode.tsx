@@ -4,15 +4,23 @@ import { Machine, MachineStatus } from '@/types/production';
 const statusColors: Record<MachineStatus, string> = {
   running: 'bg-status-running',
   stopped: 'bg-status-stopped',
+  fault: 'bg-status-fault',
+  shortage: 'bg-status-shortage',
+  accumulation: 'bg-status-accumulation',
+  scheduled: 'bg-status-scheduled',
   setup: 'bg-status-setup',
-  idle: 'bg-status-idle',
+  disconnected: 'bg-status-disconnected',
 };
 
 const statusLabels: Record<MachineStatus, string> = {
   running: 'Produzindo',
   stopped: 'Parada',
+  fault: 'Falha',
+  shortage: 'Falta',
+  accumulation: 'Acúmulo',
+  scheduled: 'Programada',
   setup: 'Setup',
-  idle: 'Ociosa',
+  disconnected: 'Desconectado',
 };
 
 interface MachineNodeProps {
