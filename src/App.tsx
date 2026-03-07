@@ -9,6 +9,8 @@ import LineLive from "@/pages/LineLive";
 import Stops from "@/pages/Stops";
 import Dashboard from "@/pages/Dashboard";
 import Configuracoes from "@/pages/Configuracoes";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +23,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route element={<AppLayout />}>
               <Route path="/" element={<LineLive />} />
               <Route path="/paradas" element={<Stops />} />
