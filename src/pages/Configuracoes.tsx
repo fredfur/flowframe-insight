@@ -113,11 +113,25 @@ export default function Configuracoes() {
     } else if (dialogType === 'equipment') {
       if (dialogMode === 'create') {
         const lineEquips = equipments.filter(e => e.lineId === dialogContext);
+        const newPosition = lineEquips.length + 1;
         const newEquip: Equipment = {
           id, name: formName, type: formType, lineId: dialogContext,
-          position: lineEquips.length + 1, nominalSpeed: Number(formNominal) || 0,
+          position: newPosition, nominalSpeed: Number(formNominal) || 0,
         };
         setEquipments(prev => [...prev, newEquip]);
+        // Auto-create transport from previous equipment to this one
+        if (newPosition > 1) {
+          const transportId = `transport-${Date.now()}`;
+          const newTransport: Transport = {
+            id: transportId, fromPosition: newPosition - 1, toPosition: newPosition,
+            lineId: dialogContext, type: 'conveyor', accumulation: 'normal',
+            accumulationPercent: 0, capacity: 50, currentUnits: 0,
+          };
+          setLines(prev => prev.map(l => l.id === dialogContext
+            ? { ...l, transports: [...l.transports, newTransport] }
+            : l
+          ));
+        }
       } else {
         setEquipments(prev => prev.map(e => e.id === id ? { ...e, name: formName, type: formType, nominalSpeed: Number(formNominal) || 0 } : e));
       }
@@ -132,6 +146,18 @@ export default function Configuracoes() {
       } else {
         setFlows(prev => prev.map(f => f.id === id ? { ...f, name: formName, sku: formSku, nominalSpeed: Number(formNominal) || 0 } : f));
       }
+    } else if (dialogType === 'transport') {
+      // Only edit mode for transports
+      setLines(prev => prev.map(l => l.id === dialogContext
+        ? {
+          ...l,
+          transports: l.transports.map(t => t.id === id
+            ? { ...t, capacity: Number(formCapacity) || t.capacity, type: (formType as Transport['type']) || t.type }
+            : t
+          ),
+        }
+        : l
+      ));
     }
 
     setDialogOpen(false);
