@@ -59,7 +59,7 @@ export function AppSidebar() {
                       className="text-sidebar-foreground hover:text-sidebar-accent-foreground transition-colors"
                       activeClassName="text-sidebar-accent-foreground bg-sidebar-accent font-medium"
                     >
-                      <item.icon className="h-4 w-4 shrink-0" />
+                      <item.icon className="h-5.5 w-5.5 shrink-0" style={{ width: '1.3rem', height: '1.3rem' }} />
                       <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
