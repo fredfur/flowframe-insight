@@ -1,6 +1,5 @@
 import { ProductionLine } from '@/types/production';
-import { OEEGauge } from './OEEGauge';
-import { Activity, Zap, CheckCircle, Clock } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface LineMetricsBarProps {
   line: ProductionLine;
@@ -9,54 +8,39 @@ interface LineMetricsBarProps {
 export function LineMetricsBar({ line }: LineMetricsBarProps) {
   const runningCount = line.machines.filter(m => m.status === 'running').length;
   const stoppedCount = line.machines.filter(m => m.status === 'stopped').length;
+  const setupCount = line.machines.filter(m => m.status === 'setup').length;
 
   return (
-    <div className="flex flex-wrap items-center gap-6 rounded-xl border border-border bg-card p-4">
-      <OEEGauge value={line.oee.oee} label="OEE" size="sm" />
-
-      <div className="h-10 w-px bg-border" />
-
-      <div className="flex items-center gap-2">
-        <Zap className="h-4 w-4 text-primary" />
-        <div>
-          <p className="text-lg font-mono font-bold text-foreground">{line.throughput}</p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest">u/h Vazão</p>
+    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+      <MetricCard label="OEE" value={`${line.oee.oee.toFixed(1)}%`} accent={line.oee.oee >= 70} />
+      <MetricCard label="Vazão" value={`${line.throughput}`} sub="u/h" accent />
+      <MetricCard label="Disponibilidade" value={`${line.oee.availability.toFixed(1)}%`} />
+      <MetricCard label="Performance" value={`${line.oee.performance.toFixed(1)}%`} />
+      <MetricCard label="Qualidade" value={`${line.oee.quality.toFixed(1)}%`} />
+      <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2">
+        <div className="flex items-center gap-4 text-[10px]">
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-status-running" /> {runningCount}
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-status-stopped" /> {stoppedCount}
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-status-setup" /> {setupCount}
+          </span>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <div className="h-10 w-px bg-border" />
-
-      <div className="flex items-center gap-2">
-        <Activity className="h-4 w-4 text-muted-foreground" />
-        <div>
-          <p className="text-lg font-mono font-bold text-foreground">{line.oee.availability.toFixed(1)}%</p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Disponibilidade</p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <Clock className="h-4 w-4 text-muted-foreground" />
-        <div>
-          <p className="text-lg font-mono font-bold text-foreground">{line.oee.performance.toFixed(1)}%</p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Performance</p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <CheckCircle className="h-4 w-4 text-muted-foreground" />
-        <div>
-          <p className="text-lg font-mono font-bold text-foreground">{line.oee.quality.toFixed(1)}%</p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Qualidade</p>
-        </div>
-      </div>
-
-      <div className="ml-auto flex items-center gap-3 text-xs">
-        <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-status-running" /> {runningCount} rodando
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-status-stopped" /> {stoppedCount} parada{stoppedCount !== 1 && 's'}
-        </span>
+function MetricCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
+  return (
+    <div className="flex flex-col justify-center rounded-lg border border-border bg-card px-3 py-2">
+      <span className="text-[9px] uppercase tracking-widest text-muted-foreground mb-0.5">{label}</span>
+      <div className="flex items-baseline gap-1">
+        <span className={`text-lg font-mono font-bold ${accent ? 'text-primary' : 'text-foreground'}`}>{value}</span>
+        {sub && <span className="text-[10px] text-muted-foreground">{sub}</span>}
       </div>
     </div>
   );
