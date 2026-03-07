@@ -46,8 +46,8 @@ export default function LineLive() {
   }));
 
   return (
-    <div className="flex h-full gap-0">
-      <div className="flex-1 flex flex-col gap-4 md:gap-6 min-w-0 overflow-y-auto">
+    <div className="flex flex-col gap-4 md:gap-6 overflow-y-auto">
+      <div className="flex flex-col gap-4 md:gap-6 min-w-0">
         <div>
           <h1 className="text-lg font-semibold text-foreground">{line.name}</h1>
           <p className="text-sm text-muted-foreground">
@@ -161,9 +161,7 @@ export default function LineLive() {
         </div>
       </div>
 
-      {selectedMachine && (
-        <MachineDetailPanel machine={selectedMachine} onClose={() => setSelectedMachine(null)} />
-      )}
+      <MachineDetailPanel machine={selectedMachine} onClose={() => setSelectedMachine(null)} />
     </div>
   );
 }
