@@ -19,7 +19,7 @@ export default function Stops() {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-foreground">Registro de Paradas</h1>

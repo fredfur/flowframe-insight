@@ -58,8 +58,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <div className="rounded-lg border bg-card p-4">
           <p className="text-[11px] text-muted-foreground mb-3">OEE — Última Semana</p>
-          <ChartContainer config={oeeChartConfig} className="h-[220px]">
-            <AreaChart data={mockOEEHistory}>
+          <ChartContainer config={oeeChartConfig} className="h-[220px] w-full">
+            <AreaChart data={mockOEEHistory} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="time" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
               <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
@@ -73,8 +73,8 @@ export default function Dashboard() {
 
         <div className="rounded-lg border bg-card p-4">
           <p className="text-[11px] text-muted-foreground mb-3">Vazão (DLI) — Hoje</p>
-          <ChartContainer config={dliChartConfig} className="h-[220px]">
-            <LineChart data={mockDLIData}>
+          <ChartContainer config={dliChartConfig} className="h-[220px] w-full">
+            <LineChart data={mockDLIData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="time" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
               <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
@@ -87,8 +87,8 @@ export default function Dashboard() {
 
         <div className="rounded-lg border bg-card p-4 lg:col-span-2">
           <p className="text-[11px] text-muted-foreground mb-3">Pareto de Paradas — Tempo Total (min)</p>
-          <ChartContainer config={paretoConfig} className="h-[220px]">
-            <BarChart data={mockParetoData}>
+          <ChartContainer config={paretoConfig} className="h-[220px] w-full">
+            <BarChart data={mockParetoData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="category" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
               <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
