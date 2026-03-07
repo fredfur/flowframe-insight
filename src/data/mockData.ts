@@ -1,0 +1,108 @@
+import { Machine, ProductionLine, Stop, DLIDataPoint, OEEHistoryPoint } from '@/types/production';
+
+const createMachines = (lineId: string): Machine[] => [
+  {
+    id: `${lineId}-m1`, name: 'Alimentador', type: 'Feeder',
+    lineId, position: 1, x: 80, y: 200, status: 'running',
+    oee: { availability: 95, performance: 88, quality: 99, oee: 82.8 },
+    throughput: 440, nominalSpeed: 500,
+  },
+  {
+    id: `${lineId}-m2`, name: 'Processadora A', type: 'Processor',
+    lineId, position: 2, x: 280, y: 200, status: 'running',
+    oee: { availability: 90, performance: 85, quality: 97, oee: 74.2 },
+    throughput: 410, nominalSpeed: 500,
+  },
+  {
+    id: `${lineId}-m3`, name: 'Inspeção Visual', type: 'Inspection',
+    lineId, position: 3, x: 480, y: 200, status: 'stopped',
+    oee: { availability: 70, performance: 92, quality: 100, oee: 64.4 },
+    throughput: 0, nominalSpeed: 500,
+  },
+  {
+    id: `${lineId}-m4`, name: 'Processadora B', type: 'Processor',
+    lineId, position: 4, x: 680, y: 200, status: 'setup',
+    oee: { availability: 60, performance: 80, quality: 95, oee: 45.6 },
+    throughput: 0, nominalSpeed: 500,
+  },
+  {
+    id: `${lineId}-m5`, name: 'Embaladora', type: 'Packer',
+    lineId, position: 5, x: 880, y: 200, status: 'running',
+    oee: { availability: 92, performance: 90, quality: 98, oee: 81.1 },
+    throughput: 430, nominalSpeed: 500,
+  },
+];
+
+export const mockLines: ProductionLine[] = [
+  {
+    id: 'line-1', name: 'Linha 01 — Envase', type: 'Envase',
+    nominalSpeed: 500,
+    machines: createMachines('line-1'),
+    oee: { availability: 81.4, performance: 87, quality: 97.8, oee: 69.2 },
+    throughput: 380,
+  },
+  {
+    id: 'line-2', name: 'Linha 02 — Montagem', type: 'Montagem',
+    nominalSpeed: 300,
+    machines: createMachines('line-2').map(m => ({
+      ...m, lineId: 'line-2', id: m.id.replace('line-1', 'line-2'),
+      status: m.position === 3 ? 'running' as const : m.status,
+    })),
+    oee: { availability: 88, performance: 82, quality: 96, oee: 69.3 },
+    throughput: 245,
+  },
+];
+
+export const mockStops: Stop[] = [
+  {
+    id: 's1', machineId: 'line-1-m3', machineName: 'Inspeção Visual', lineId: 'line-1',
+    category: 'maintenance', startTime: '2026-03-07T08:30:00', endTime: null,
+    duration: null, notes: 'Sensor de câmera com falha', registeredBy: 'operador@fabrica.com',
+  },
+  {
+    id: 's2', machineId: 'line-1-m4', machineName: 'Processadora B', lineId: 'line-1',
+    category: 'setup', startTime: '2026-03-07T09:00:00', endTime: null,
+    duration: null, notes: 'Troca de molde para SKU-204', registeredBy: 'operador@fabrica.com',
+  },
+  {
+    id: 's3', machineId: 'line-1-m2', machineName: 'Processadora A', lineId: 'line-1',
+    category: 'material_shortage', startTime: '2026-03-07T06:15:00', endTime: '2026-03-07T06:45:00',
+    duration: 30, notes: 'Aguardando reposição de insumo X', registeredBy: 'operador@fabrica.com',
+  },
+  {
+    id: 's4', machineId: 'line-1-m1', machineName: 'Alimentador', lineId: 'line-1',
+    category: 'quality_issue', startTime: '2026-03-07T05:00:00', endTime: '2026-03-07T05:20:00',
+    duration: 20, notes: 'Produto fora de especificação', registeredBy: 'operador@fabrica.com',
+  },
+  {
+    id: 's5', machineId: 'line-1-m5', machineName: 'Embaladora', lineId: 'line-1',
+    category: 'planned', startTime: '2026-03-07T04:00:00', endTime: '2026-03-07T04:30:00',
+    duration: 30, notes: 'Parada para limpeza programada', registeredBy: 'operador@fabrica.com',
+  },
+];
+
+export const mockDLIData: DLIDataPoint[] = Array.from({ length: 24 }, (_, i) => ({
+  time: `${String(i).padStart(2, '0')}:00`,
+  throughput: Math.round(300 + Math.random() * 150 + (i > 6 && i < 18 ? 50 : -50)),
+  target: 450,
+}));
+
+export const mockOEEHistory: OEEHistoryPoint[] = [
+  { time: 'Seg', oee: 72, availability: 85, performance: 88, quality: 96 },
+  { time: 'Ter', oee: 68, availability: 80, performance: 87, quality: 97 },
+  { time: 'Qua', oee: 75, availability: 88, performance: 89, quality: 96 },
+  { time: 'Qui', oee: 70, availability: 82, performance: 88, quality: 97 },
+  { time: 'Sex', oee: 69, availability: 81, performance: 87, quality: 98 },
+  { time: 'Sáb', oee: 65, availability: 78, performance: 85, quality: 98 },
+  { time: 'Dom', oee: 60, availability: 75, performance: 82, quality: 97 },
+];
+
+export const mockParetoData = [
+  { category: 'Manutenção', minutes: 180, count: 8 },
+  { category: 'Setup', minutes: 120, count: 12 },
+  { category: 'Falta Material', minutes: 90, count: 5 },
+  { category: 'Qualidade', minutes: 60, count: 4 },
+  { category: 'Ausência Op.', minutes: 45, count: 3 },
+  { category: 'Planejada', minutes: 30, count: 2 },
+  { category: 'Outros', minutes: 15, count: 1 },
+];
