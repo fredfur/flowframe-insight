@@ -9,7 +9,8 @@ import { LineMetricsBar } from '@/components/production/LineMetricsBar';
 import { LineTimeline } from '@/components/production/LineTimeline';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
-import { AIInsightChips, MOCK_LINELIVE_INSIGHTS, useChatAssistant } from '@/components/ai/AIInsights';
+import { AIInsightChips, MOCK_LINELIVE_INSIGHTS } from '@/components/ai/AIInsights';
+import { useNavigate } from 'react-router-dom';
 
 const vGraphConfig = {
   throughput: { label: 'Vazão Real', color: 'hsl(var(--primary))' },
