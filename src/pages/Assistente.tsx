@@ -432,7 +432,7 @@ export default function Assistente() {
                 )}>
                   {msg.role === 'assistant' ? (
                     <>
-                      <div className="prose prose-sm dark:prose-invert prose-p:my-1 prose-li:my-0.5 prose-headings:my-2 prose-table:my-2 max-w-none text-xs">
+                      <div className="prose prose-sm dark:prose-invert prose-p:my-1 prose-li:my-0.5 prose-headings:my-2 prose-table:my-2 prose-th:text-left prose-th:px-2 prose-th:py-1 prose-td:px-2 prose-td:py-1 prose-th:border-b prose-th:border-border prose-td:border-b prose-td:border-border/50 max-w-none text-xs">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                       </div>
                       {msg.chart && <InlineChart chart={msg.chart} />}
