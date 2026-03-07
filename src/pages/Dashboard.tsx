@@ -23,7 +23,7 @@ const paretoConfig = {
 export default function Dashboard() {
   const totalOEE = mockLines.reduce((sum, l) => sum + l.oee.oee, 0) / mockLines.length;
   const totalThroughput = mockLines.reduce((sum, l) => sum + l.throughput, 0);
-  const totalStoppedMachines = mockLines.reduce((sum, l) => sum + l.machines.filter(m => m.status === 'stopped').length, 0);
+  const totalStoppedMachines = mockLines.reduce((sum, l) => sum + l.machines.filter(m => m.status !== 'running').length, 0);
 
   return (
     <div className="space-y-5">
