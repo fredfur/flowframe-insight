@@ -7,6 +7,7 @@ import { Moon, Sun } from 'lucide-react';
 import { mockLines } from '@/data/mockData';
 import { useLineStore } from '@/stores/lineStore';
 import { useTheme } from 'next-themes';
+import { ConnectionIndicator } from './ConnectionIndicator';
 
 export function AppLayout() {
   const { selectedLineId, setSelectedLineId } = useLineStore();
@@ -34,7 +35,9 @@ export function AppLayout() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <ConnectionIndicator />
+              <div className="h-4 w-px bg-border" />
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <span className="h-2 w-2 rounded-full bg-status-running animate-pulse" />
                 <span>Live</span>
