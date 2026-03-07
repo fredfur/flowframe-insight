@@ -34,7 +34,7 @@ export default function Configuracoes() {
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<'site' | 'line' | 'equipment' | 'flow'>('site');
+  const [dialogType, setDialogType] = useState<'site' | 'line' | 'equipment' | 'flow' | 'transport'>('site');
   const [dialogMode, setDialogMode] = useState<DialogMode>('create');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dialogContext, setDialogContext] = useState<string>(''); // parent ID
