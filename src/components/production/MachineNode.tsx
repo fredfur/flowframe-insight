@@ -3,7 +3,6 @@ import { Machine, MachineStatus } from '@/types/production';
 
 const statusColors: Record<MachineStatus, string> = {
   running: 'bg-status-running',
-  stopped: 'bg-status-stopped',
   fault: 'bg-status-fault',
   shortage: 'bg-status-shortage',
   accumulation: 'bg-status-accumulation',
@@ -14,7 +13,6 @@ const statusColors: Record<MachineStatus, string> = {
 
 const statusLabels: Record<MachineStatus, string> = {
   running: 'Produzindo',
-  stopped: 'Parada',
   fault: 'Falha',
   shortage: 'Falta',
   accumulation: 'Acúmulo',
