@@ -99,7 +99,7 @@ function getMockResponse(input: string): string {
   return MOCK_CHAT_RESPONSES.default;
 }
 
-// ─── Insight Cards Component ───
+// ─── Insight Chip Component (minimal inline pill with tooltip) ───
 
 const insightIcons = {
   warning: AlertTriangle,
@@ -107,105 +107,73 @@ const insightIcons = {
   info: TrendingDown,
 };
 
-const insightStyles = {
-  warning: {
-    border: 'border-destructive/20',
-    bg: 'bg-destructive/5',
-    iconColor: 'text-destructive',
-    badgeBg: 'bg-destructive/10 text-destructive',
-  },
-  opportunity: {
-    border: 'border-status-running/20',
-    bg: 'bg-status-running/5',
-    iconColor: 'text-status-running',
-    badgeBg: 'bg-status-running/10 text-status-running',
-  },
-  info: {
-    border: 'border-primary/20',
-    bg: 'bg-primary/5',
-    iconColor: 'text-primary',
-    badgeBg: 'bg-primary/10 text-primary',
-  },
+const chipStyles = {
+  warning: 'bg-destructive/10 text-destructive hover:bg-destructive/15',
+  opportunity: 'bg-status-running/10 text-status-running hover:bg-status-running/15',
+  info: 'bg-primary/10 text-primary hover:bg-primary/15',
 };
 
-export function AIInsightCards({
+export function AIInsightChip({
+  insight,
+  onAskAI,
+}: {
+  insight: AIInsight;
+  onAskAI?: (context: string) => void;
+}) {
+  const Icon = insightIcons[insight.type];
+  const [showTooltip, setShowTooltip] = useState(false);
+  const chipRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <div className="relative inline-flex" ref={chipRef}>
+      <button
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        onClick={() => onAskAI?.(`Sobre "${insight.title}": ${insight.summary}`)}
+        className={cn(
+          'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors cursor-pointer',
+          chipStyles[insight.type],
+        )}
+      >
+        <Icon className="h-2.5 w-2.5" />
+        <span className="truncate max-w-[120px]">{insight.title}</span>
+        {insight.metric && (
+          <span className="font-semibold tabular-nums">{insight.metric}</span>
+        )}
+      </button>
+
+      {showTooltip && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-64 p-2.5 rounded-lg border bg-popover text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 duration-150">
+          <p className="text-[11px] font-medium mb-1">{insight.title}</p>
+          <p className="text-[10px] text-muted-foreground leading-relaxed">{insight.summary}</p>
+          {onAskAI && (
+            <p className="text-[9px] text-primary mt-1.5 flex items-center gap-1">
+              <Sparkles className="h-2 w-2" /> Clique para perguntar à IA
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function AIInsightChips({
   insights,
   onAskAI,
 }: {
   insights: AIInsight[];
   onAskAI?: (context: string) => void;
 }) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
   if (insights.length === 0) return null;
 
   return (
-    <div className="rounded-lg border bg-card p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="flex h-5 w-5 items-center justify-center rounded-md bg-primary/10">
-          <Sparkles className="h-3 w-3 text-primary" />
-        </div>
-        <span className="text-xs font-semibold text-foreground">Insights da IA</span>
-        <Badge variant="secondary" className="text-[9px] h-4 px-1.5">Beta</Badge>
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex h-4 w-4 items-center justify-center rounded bg-primary/10 shrink-0">
+        <Sparkles className="h-2.5 w-2.5 text-primary" />
       </div>
-
-      <div className="space-y-2">
-        {insights.map((insight) => {
-          const Icon = insightIcons[insight.type];
-          const style = insightStyles[insight.type];
-          const isExpanded = expandedId === insight.id;
-
-          return (
-            <div
-              key={insight.id}
-              className={cn(
-                'rounded-lg p-3 transition-all cursor-pointer',
-                style.bg,
-                isExpanded && 'shadow-sm',
-              )}
-              onClick={() => setExpandedId(isExpanded ? null : insight.id)}
-            >
-              <div className="flex items-start gap-2.5">
-                <div className={cn('mt-0.5 shrink-0', style.iconColor)}>
-                  <Icon className="h-3.5 w-3.5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-medium text-foreground">{insight.title}</p>
-                    {insight.metric && (
-                      <span className={cn('text-[10px] font-semibold tabular-nums shrink-0 px-1.5 py-0.5 rounded-md', style.badgeBg)}>
-                        {insight.metric}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{insight.summary}</p>
-
-                  {isExpanded && insight.detail && (
-                    <p className="text-[11px] text-foreground mt-2 p-2.5 rounded-md bg-background/60 border leading-relaxed">
-                      {insight.detail}
-                    </p>
-                  )}
-
-                  {isExpanded && onAskAI && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mt-2 h-6 text-[10px] gap-1 text-primary hover:text-primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAskAI(`Sobre "${insight.title}": ${insight.summary}`);
-                      }}
-                    >
-                      <Sparkles className="h-2.5 w-2.5" /> Perguntar à IA
-                    </Button>
-                  )}
-                </div>
-                <ChevronRight className={cn('h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform', isExpanded && 'rotate-90')} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {insights.map((insight) => (
+        <AIInsightChip key={insight.id} insight={insight} onAskAI={onAskAI} />
+      ))}
     </div>
   );
 }

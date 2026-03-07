@@ -9,7 +9,7 @@ import { LineMetricsBar } from '@/components/production/LineMetricsBar';
 import { LineTimeline } from '@/components/production/LineTimeline';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
-import { AIInsightCards, MOCK_LINELIVE_INSIGHTS, useChatAssistant } from '@/components/ai/AIInsights';
+import { AIInsightChips, MOCK_LINELIVE_INSIGHTS, useChatAssistant } from '@/components/ai/AIInsights';
 
 const vGraphConfig = {
   throughput: { label: 'Vazão Real', color: 'hsl(var(--primary))' },
@@ -50,11 +50,14 @@ export default function LineLive() {
   return (
     <div className="flex flex-col gap-4 md:gap-6 overflow-y-auto">
       <div className="flex flex-col gap-4 md:gap-6 min-w-0">
-        <div>
-          <h1 className="text-lg font-semibold text-foreground">{line.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            {line.type} · Nominal: {line.nominalSpeed} u/h
-          </p>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-lg font-semibold text-foreground">{line.name}</h1>
+            <p className="text-sm text-muted-foreground">
+              {line.type} · Nominal: {line.nominalSpeed} u/h
+            </p>
+          </div>
+          <AIInsightChips insights={MOCK_LINELIVE_INSIGHTS} onAskAI={askAI} />
         </div>
 
         <LineMetricsBar line={line} />
@@ -131,8 +134,6 @@ export default function LineLive() {
           </div>
         </div>
 
-        {/* AI Insights */}
-        <AIInsightCards insights={MOCK_LINELIVE_INSIGHTS} onAskAI={askAI} />
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
