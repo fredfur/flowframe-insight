@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { AppLayout } from "@/components/layout/AppLayout";
 import LineLive from "@/pages/LineLive";
 import Stops from "@/pages/Stops";
+import HourlyProduction from "@/pages/HourlyProduction";
 import Dashboard from "@/pages/Dashboard";
 import Configuracoes from "@/pages/Configuracoes";
 import Login from "@/pages/Login";
@@ -28,6 +29,7 @@ const App = () => (
             <Route element={<AppLayout />}>
               <Route path="/" element={<LineLive />} />
               <Route path="/paradas" element={<Stops />} />
+              <Route path="/producao" element={<HourlyProduction />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
