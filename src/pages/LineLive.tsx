@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { mockLines, mockDLIData, mockTimelines, mockSpeedSamples } from '@/data/mockData';
 import { useLineStore } from '@/stores/lineStore';
 import { Machine } from '@/types/production';
-import { MachineNode } from '@/components/production/MachineNode';
+import { FlowNode } from '@/components/production/FlowNode';
 import { FlowConnector } from '@/components/production/FlowConnector';
 import { MachineDetailPanel } from '@/components/production/MachineDetailPanel';
 import { LineMetricsBar } from '@/components/production/LineMetricsBar';
@@ -24,6 +24,19 @@ export default function LineLive() {
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
 
   const sortedMachines = [...line.machines].sort((a, b) => a.position - b.position);
+
+  // Group machines by position for parallel node support
+  const flowNodes = useMemo(() => {
+    const positionMap = new Map<number, Machine[]>();
+    sortedMachines.forEach(m => {
+      const existing = positionMap.get(m.position) || [];
+      existing.push(m);
+      positionMap.set(m.position, existing);
+    });
+    return Array.from(positionMap.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([position, machines]) => ({ position, machines }));
+  }, [sortedMachines]);
 
   const vGraphData = sortedMachines.map(m => ({
     name: m.name.length > 8 ? m.name.slice(0, 8) + '…' : m.name,
@@ -63,17 +76,25 @@ export default function LineLive() {
               <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-disconnected" /> Desconectado</span>
             </div>
           </div>
-          <div className="flex items-start gap-0 overflow-x-auto pb-2 rounded-lg border bg-card p-4 w-full">
-            {sortedMachines.map((machine, i) => (
-              <div key={machine.id} className="flex items-start flex-1 min-w-0">
-                <MachineNode
-                  machine={machine}
-                  onClick={setSelectedMachine}
-                  isSelected={selectedMachine?.id === machine.id}
-                />
-                {i < sortedMachines.length - 1 && <FlowConnector />}
-              </div>
-            ))}
+          <div className="flex items-stretch gap-0 overflow-x-auto pb-2 rounded-lg border bg-card p-4 w-full">
+            {flowNodes.map((node, i) => {
+              // Find transport between this node and next
+              const nextNode = flowNodes[i + 1];
+              const transport = nextNode
+                ? line.transports.find(t => t.fromPosition === node.position && t.toPosition === nextNode.position)
+                : undefined;
+
+              return (
+                <div key={node.position} className="flex items-center flex-1 min-w-0">
+                  <FlowNode
+                    machines={node.machines}
+                    selectedMachineId={selectedMachine?.id}
+                    onMachineClick={setSelectedMachine}
+                  />
+                  {i < flowNodes.length - 1 && <FlowConnector transport={transport} />}
+                </div>
+              );
+            })}
           </div>
         </div>
 
