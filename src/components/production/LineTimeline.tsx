@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Machine, MachineStatus } from '@/types/production';
-import { ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronUp, AlertTriangle, Activity, Layers } from 'lucide-react';
 
 export type TimelineStatus = MachineStatus;
 
@@ -15,6 +15,12 @@ export interface MachineTimeline {
   machineId: string;
   machineName: string;
   segments: TimelineSegment[];
+}
+
+/** Speed samples over time for overlay */
+export interface SpeedSample {
+  min: number; // minute from midnight
+  speed: number; // u/h
 }
 
 const STATUS_META: Record<TimelineStatus, { label: string; colorClass: string }> = {
@@ -36,6 +42,8 @@ const SHIFTS = [
 interface LineTimelineProps {
   machines: Machine[];
   timelines: MachineTimeline[];
+  speedSamples?: SpeedSample[];
+  nominalSpeed?: number;
   shiftIndex?: number;
 }
 
@@ -108,7 +116,57 @@ function TimelineBar({ segments, start, totalMin, height = 'h-5' }: { segments: 
   );
 }
 
-/** Shared time axis rendered once below all bars */
+/** SVG sparkline overlay for speed on top of the aggregated bar */
+function SpeedOverlay({ samples, start, totalMin, nominalSpeed, height }: {
+  samples: SpeedSample[];
+  start: number;
+  totalMin: number;
+  nominalSpeed: number;
+  height: number;
+}) {
+  if (samples.length < 2) return null;
+
+  const maxSpeed = nominalSpeed * 1.15; // allow 15% over nominal for headroom
+  const points = samples
+    .filter(s => s.min >= start && s.min <= start + totalMin)
+    .map(s => ({
+      x: ((s.min - start) / totalMin) * 100,
+      y: height - (s.speed / maxSpeed) * height,
+    }));
+
+  if (points.length < 2) return null;
+
+  const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  // Nominal line
+  const nominalY = height - (nominalSpeed / maxSpeed) * height;
+
+  return (
+    <svg
+      viewBox={`0 0 100 ${height}`}
+      preserveAspectRatio="none"
+      className="absolute inset-0 w-full h-full pointer-events-none"
+    >
+      {/* Nominal speed reference */}
+      <line
+        x1="0" y1={nominalY} x2="100" y2={nominalY}
+        stroke="hsl(var(--foreground))"
+        strokeWidth="0.3"
+        strokeDasharray="1.5 1"
+        opacity="0.4"
+      />
+      {/* Speed line */}
+      <path
+        d={pathD}
+        fill="none"
+        stroke="hsl(var(--foreground))"
+        strokeWidth="0.6"
+        opacity="0.85"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
 function TimeAxis({ ticks, start, totalMin }: { ticks: number[]; start: number; totalMin: number }) {
   return (
     <div className="relative h-4 mt-1">
@@ -125,10 +183,9 @@ function TimeAxis({ ticks, start, totalMin }: { ticks: number[]; start: number; 
   );
 }
 
-// Width of the machine name labels — swimlane bars are offset by this
-const LABEL_W = 'w-24';
+const LABEL_W = 'w-28';
 
-export function LineTimeline({ machines, timelines, shiftIndex }: LineTimelineProps) {
+export function LineTimeline({ machines, timelines, speedSamples, nominalSpeed, shiftIndex }: LineTimelineProps) {
   const [expanded, setExpanded] = useState(false);
 
   const now = new Date();
@@ -152,6 +209,8 @@ export function LineTimeline({ machines, timelines, shiftIndex }: LineTimelinePr
     return t;
   }, [start, end]);
 
+  const barHeightPx = expanded ? 28 : 32;
+
   return (
     <div className="rounded-lg border bg-card p-4">
       <div className="flex items-center justify-between mb-3">
@@ -159,6 +218,11 @@ export function LineTimeline({ machines, timelines, shiftIndex }: LineTimelinePr
           <AlertTriangle className="h-4 w-4 text-status-fault" />
           <p className="text-sm font-medium text-foreground">Visão de Status</p>
           <span className="text-xs text-muted-foreground">· {shiftLabel}</span>
+          {speedSamples && speedSamples.length > 0 && (
+            <span className="flex items-center gap-1 text-[10px] text-muted-foreground ml-2">
+              <Activity className="h-3 w-3" /> Vel. atual
+            </span>
+          )}
         </div>
         <button
           onClick={() => setExpanded(!expanded)}
@@ -169,39 +233,46 @@ export function LineTimeline({ machines, timelines, shiftIndex }: LineTimelinePr
         </button>
       </div>
 
-      {/* All bars share the same horizontal grid — labels offset on the left */}
       <div>
-        {/* Aggregated bar */}
+        {/* Aggregated line bar — with speed overlay */}
         <div className={cn('flex items-center gap-2', expanded && 'mb-2')}>
-          {expanded && (
-            <span className={cn(LABEL_W, 'shrink-0 text-[10px] text-muted-foreground text-right truncate')}>
-              Linha
-            </span>
-          )}
-          <div className="flex-1">
-            <TimelineBar segments={aggregated} start={start} totalMin={totalMin} height={expanded ? 'h-5' : 'h-6'} />
+          <div className={cn(LABEL_W, 'shrink-0 flex items-center gap-1.5 justify-end')}>
+            <Layers className="h-3 w-3 text-primary" />
+            <span className="text-[11px] font-medium text-foreground">Linha</span>
+          </div>
+          <div className="flex-1 relative" style={{ height: `${barHeightPx}px` }}>
+            <TimelineBar segments={aggregated} start={start} totalMin={totalMin} height="h-full" />
+            {speedSamples && nominalSpeed && (
+              <SpeedOverlay
+                samples={speedSamples}
+                start={start}
+                totalMin={totalMin}
+                nominalSpeed={nominalSpeed}
+                height={barHeightPx}
+              />
+            )}
           </div>
         </div>
 
-        {/* Expanded swimlanes — same width alignment */}
+        {/* Expanded equipment swimlanes */}
         {expanded && (
-          <div className="space-y-1">
+          <div className="space-y-1 border-l-2 border-border ml-[6.5rem] pl-0">
             {timelines.map((tl) => (
               <div key={tl.machineId} className="flex items-center gap-2">
-                <span className={cn(LABEL_W, 'shrink-0 text-[10px] text-muted-foreground text-right truncate tabular-nums')}>
+                <span className={cn('w-[5.5rem] shrink-0 text-[10px] text-muted-foreground text-right truncate tabular-nums pr-2')}>
                   {tl.machineName}
                 </span>
                 <div className="flex-1">
-                  <TimelineBar segments={tl.segments} start={start} totalMin={totalMin} height="h-3.5" />
+                  <TimelineBar segments={tl.segments} start={start} totalMin={totalMin} height="h-3" />
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Single shared time axis */}
-        <div className={cn('flex items-start gap-2', expanded && 'mt-0')}>
-          {expanded && <span className={cn(LABEL_W, 'shrink-0')} />}
+        {/* Shared time axis */}
+        <div className="flex items-start gap-2">
+          <span className={cn(LABEL_W, 'shrink-0')} />
           <div className="flex-1">
             <TimeAxis ticks={ticks} start={start} totalMin={totalMin} />
           </div>
@@ -216,6 +287,18 @@ export function LineTimeline({ machines, timelines, shiftIndex }: LineTimelinePr
             {meta.label}
           </span>
         ))}
+        {speedSamples && speedSamples.length > 0 && (
+          <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            <span className="h-[1px] w-3 bg-foreground opacity-80" />
+            Vel. atual (u/h)
+          </span>
+        )}
+        {nominalSpeed && (
+          <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            <span className="h-[1px] w-3 bg-foreground opacity-40 border-t border-dashed border-foreground" />
+            Nominal ({nominalSpeed} u/h)
+          </span>
+        )}
       </div>
     </div>
   );

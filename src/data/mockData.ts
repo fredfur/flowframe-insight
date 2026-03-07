@@ -1,5 +1,5 @@
 import { Machine, ProductionLine, Stop, DLIDataPoint, OEEHistoryPoint, Site, Equipment, ProductionFlow } from '@/types/production';
-import { MachineTimeline, TimelineSegment, TimelineStatus } from '@/components/production/LineTimeline';
+import { MachineTimeline, TimelineSegment, TimelineStatus, SpeedSample } from '@/components/production/LineTimeline';
 
 const createMachines = (lineId: string): Machine[] => [
   {
@@ -216,4 +216,32 @@ export const mockTimelines: Record<string, MachineTimeline[]> = {
       segments: makeSegments([['running', 360, 700], ['accumulation', 700, 730], ['running', 730, 840]]),
     },
   ],
+};
+
+// --- Speed samples (line-level throughput over time) ---
+function generateSpeedSamples(start: number, end: number, nominal: number, events: Array<[number, number, number]>): SpeedSample[] {
+  // events: [startMin, endMin, speedDuringEvent]
+  const samples: SpeedSample[] = [];
+  for (let m = start; m <= end; m += 5) {
+    const event = events.find(([s, e]) => m >= s && m < e);
+    const base = event ? event[2] : nominal * (0.82 + Math.random() * 0.15);
+    samples.push({ min: m, speed: Math.round(base) });
+  }
+  return samples;
+}
+
+export const mockSpeedSamples: Record<string, SpeedSample[]> = {
+  'line-1': generateSpeedSamples(360, 840, 500, [
+    [420, 435, 0],   // shortage → speed drops
+    [510, 560, 50],  // fault on inspection
+    [540, 570, 80],  // accumulation
+    [660, 680, 30],  // fault on packer
+    [720, 740, 0],   // fault on feeder
+  ]),
+  'line-2': generateSpeedSamples(360, 840, 300, [
+    [450, 480, 0],   // setup
+    [500, 530, 40],  // fault
+    [600, 630, 0],   // shortage
+    [700, 730, 60],  // accumulation
+  ]),
 };
