@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { mockLines, mockDLIData, mockTimelines } from '@/data/mockData';
+import { mockLines, mockDLIData, mockTimelines, mockSpeedSamples } from '@/data/mockData';
 import { useLineStore } from '@/stores/lineStore';
 import { Machine } from '@/types/production';
 import { MachineNode } from '@/components/production/MachineNode';
@@ -46,6 +46,8 @@ export default function LineLive() {
         <LineTimeline
           machines={sortedMachines}
           timelines={mockTimelines[line.id] ?? []}
+          speedSamples={mockSpeedSamples[line.id]}
+          nominalSpeed={line.nominalSpeed}
         />
         {/* Flow */}
         <div>
