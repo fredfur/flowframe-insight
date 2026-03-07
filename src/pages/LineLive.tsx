@@ -32,10 +32,10 @@ export default function LineLive() {
 
   return (
     <div className="flex h-full gap-0">
-      <div className="flex-1 flex flex-col gap-5 min-w-0 overflow-y-auto">
+      <div className="flex-1 flex flex-col gap-6 min-w-0 overflow-y-auto">
         <div>
-          <h1 className="text-base font-semibold text-foreground">{line.name}</h1>
-          <p className="text-[11px] text-muted-foreground">
+          <h1 className="text-lg font-semibold text-foreground">{line.name}</h1>
+          <p className="text-sm text-muted-foreground">
             {line.type} · Nominal: {line.nominalSpeed} u/h
           </p>
         </div>
@@ -44,16 +44,16 @@ export default function LineLive() {
 
         {/* Flow */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[11px] text-muted-foreground">Fluxo de Linha</p>
-            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="h-1.5 w-3 rounded-sm bg-status-running" /> Produzindo</span>
-              <span className="flex items-center gap-1"><span className="h-1.5 w-3 rounded-sm bg-status-stopped" /> Parada</span>
-              <span className="flex items-center gap-1"><span className="h-1.5 w-3 rounded-sm bg-status-setup" /> Setup</span>
-              <span className="flex items-center gap-1"><span className="h-1.5 w-3 rounded-sm bg-status-idle" /> Ociosa</span>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-medium text-foreground">Fluxo de Linha</p>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-running" /> Produzindo</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-stopped" /> Parada</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-setup" /> Setup</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-idle" /> Ociosa</span>
             </div>
           </div>
-          <div className="flex items-start overflow-x-auto pb-2 rounded-lg border bg-card p-3">
+          <div className="flex items-start overflow-x-auto pb-2 rounded-lg border bg-card p-4">
             {sortedMachines.map((machine, i) => (
               <div key={machine.id} className="flex items-start">
                 <MachineNode
@@ -70,28 +70,28 @@ export default function LineLive() {
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="rounded-lg border bg-card p-4">
-            <p className="text-[11px] text-muted-foreground mb-3">V-Graph — Vazão por Máquina</p>
-            <ChartContainer config={vGraphConfig} className="h-[180px]">
+            <p className="text-sm font-medium text-foreground mb-4">V-Graph — Vazão por Máquina</p>
+            <ChartContainer config={vGraphConfig} className="h-[200px]">
               <BarChart data={vGraphData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
-                <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
+                <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="throughput" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="nominal" fill="hsl(var(--muted))" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="throughput" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="nominal" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ChartContainer>
           </div>
 
           <div className="rounded-lg border bg-card p-4">
-            <p className="text-[11px] text-muted-foreground mb-3">Produção — Vazão ao Longo do Dia</p>
-            <ChartContainer config={dliConfig} className="h-[180px]">
+            <p className="text-sm font-medium text-foreground mb-4">Produção — Vazão ao Longo do Dia</p>
+            <ChartContainer config={dliConfig} className="h-[200px]">
               <LineChart data={mockDLIData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="time" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" interval={3} />
-                <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
+                <XAxis dataKey="time" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" interval={3} />
+                <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Line type="monotone" dataKey="throughput" stroke="hsl(var(--primary))" strokeWidth={1.5} dot={{ r: 1.5 }} />
+                <Line type="monotone" dataKey="throughput" stroke="hsl(var(--primary))" strokeWidth={1.5} dot={{ r: 2 }} />
                 <Line type="monotone" dataKey="target" stroke="hsl(var(--muted-foreground))" strokeWidth={1} strokeDasharray="6 3" dot={false} />
               </LineChart>
             </ChartContainer>
