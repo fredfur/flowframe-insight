@@ -199,6 +199,7 @@ export function LineTimeline({ machines, timelines, speedSamples, nominalSpeed, 
   const [zoomEnd, setZoomEnd] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<number | null>(null);
+  const [dragCurrent, setDragCurrent] = useState<number | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
   const isZoomed = zoomStart !== null && zoomEnd !== null;
