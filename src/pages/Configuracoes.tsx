@@ -10,13 +10,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { mockSites, mockLines, mockEquipments, mockFlows } from '@/data/mockData';
 import { STOP_CATEGORIES } from '@/types/production';
 import type { Site, ProductionLine, Equipment, ProductionFlow } from '@/types/production';
