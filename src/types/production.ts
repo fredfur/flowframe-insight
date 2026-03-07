@@ -1,5 +1,30 @@
 export type MachineStatus = 'running' | 'stopped' | 'setup' | 'idle';
 
+export interface Site {
+  id: string;
+  name: string;
+  location: string;
+  lines: string[];
+}
+
+export interface Equipment {
+  id: string;
+  name: string;
+  type: string;
+  lineId: string;
+  position: number;
+  nominalSpeed: number;
+}
+
+export interface ProductionFlow {
+  id: string;
+  name: string;
+  lineId: string;
+  equipmentIds: string[];
+  normalizer: string;
+  nominalSpeed: number;
+}
+
 export interface Machine {
   id: string;
   name: string;
@@ -10,28 +35,29 @@ export interface Machine {
   y: number;
   status: MachineStatus;
   oee: OEEMetrics;
-  throughput: number; // units per hour
-  nominalSpeed: number; // units per hour
+  throughput: number;
+  nominalSpeed: number;
 }
 
 export interface OEEMetrics {
-  availability: number; // 0-100
-  performance: number;  // 0-100
-  quality: number;      // 0-100
-  oee: number;          // 0-100
+  availability: number;
+  performance: number;
+  quality: number;
+  oee: number;
 }
 
 export interface ProductionLine {
   id: string;
   name: string;
   type: string;
-  nominalSpeed: number; // units per hour
+  siteId: string;
+  nominalSpeed: number;
   machines: Machine[];
   oee: OEEMetrics;
   throughput: number;
 }
 
-export type StopCategory = 
+export type StopCategory =
   | 'maintenance'
   | 'setup'
   | 'material_shortage'
@@ -48,7 +74,7 @@ export interface Stop {
   category: StopCategory;
   startTime: string;
   endTime: string | null;
-  duration: number | null; // minutes
+  duration: number | null;
   notes: string;
   registeredBy: string;
 }
