@@ -160,23 +160,35 @@ export const mockTimelines: Record<string, MachineTimeline[]> = {
     {
       machineId: 'line-1-m1', machineName: 'Alimentador',
       segments: makeSegments([
+        // 1º Turno
         ['running', 360, 420], ['shortage', 420, 435], ['running', 435, 540],
         ['scheduled', 540, 570], ['running', 570, 720], ['fault', 720, 740], ['running', 740, 840],
+        // 2º Turno
+        ['running', 840, 870], ['fault', 870, 890], ['running', 890, 1050],
+        ['scheduled', 1050, 1070], ['running', 1070, 1250], ['shortage', 1250, 1270], ['running', 1270, 1320],
+        // 3º Turno
+        ['running', 1320, 1380], ['fault', 1380, 1400], ['running', 1400, 1620],
+        ['scheduled', 1620, 1650], ['running', 1650, 1800],
       ]),
     },
     {
       machineId: 'line-1-m2', machineName: 'Processadora A',
       segments: makeSegments([
         ['running', 360, 375], ['shortage', 375, 405], ['running', 405, 510],
-        ['accumulation', 510, 535], ['running', 535, 600], ['scheduled', 600, 630],
-        ['running', 630, 840],
+        ['accumulation', 510, 535], ['running', 535, 600], ['scheduled', 600, 630], ['running', 630, 840],
+        ['running', 840, 960], ['fault', 960, 1000], ['running', 1000, 1140],
+        ['accumulation', 1140, 1160], ['running', 1160, 1320],
+        ['running', 1320, 1500], ['shortage', 1500, 1530], ['running', 1530, 1800],
       ]),
     },
     {
       machineId: 'line-1-m3', machineName: 'Inspeção Visual',
       segments: makeSegments([
-        ['running', 360, 510], ['fault', 510, 560], ['fault', 560, 600],
-        ['running', 600, 750], ['disconnected', 750, 780], ['running', 780, 840],
+        ['running', 360, 510], ['fault', 510, 600], ['running', 600, 750],
+        ['disconnected', 750, 780], ['running', 780, 840],
+        ['running', 840, 1050], ['fault', 1050, 1070], ['running', 1070, 1320],
+        ['running', 1320, 1500], ['disconnected', 1500, 1530], ['running', 1530, 1720],
+        ['fault', 1720, 1740], ['running', 1740, 1800],
       ]),
     },
     {
@@ -184,6 +196,9 @@ export const mockTimelines: Record<string, MachineTimeline[]> = {
       segments: makeSegments([
         ['setup', 360, 420], ['running', 420, 540], ['accumulation', 540, 570],
         ['running', 570, 690], ['shortage', 690, 710], ['running', 710, 840],
+        ['running', 840, 960], ['setup', 960, 990], ['running', 990, 1140],
+        ['shortage', 1140, 1160], ['running', 1160, 1320],
+        ['running', 1320, 1500], ['accumulation', 1500, 1530], ['running', 1530, 1800],
       ]),
     },
     {
@@ -191,29 +206,50 @@ export const mockTimelines: Record<string, MachineTimeline[]> = {
       segments: makeSegments([
         ['running', 360, 480], ['scheduled', 480, 510], ['running', 510, 660],
         ['fault', 660, 680], ['running', 680, 840],
+        ['running', 840, 1050], ['scheduled', 1050, 1070], ['running', 1070, 1250],
+        ['fault', 1250, 1270], ['running', 1270, 1320],
+        ['running', 1320, 1620], ['scheduled', 1620, 1650], ['running', 1650, 1800],
       ]),
     },
   ],
   'line-2': [
     {
       machineId: 'line-2-m1', machineName: 'Alimentador',
-      segments: makeSegments([['running', 360, 600], ['shortage', 600, 630], ['running', 630, 840]]),
+      segments: makeSegments([
+        ['running', 360, 600], ['shortage', 600, 630], ['running', 630, 840],
+        ['running', 840, 900], ['shortage', 900, 920], ['running', 920, 1320],
+        ['running', 1320, 1400], ['fault', 1400, 1430], ['running', 1430, 1800],
+      ]),
     },
     {
       machineId: 'line-2-m2', machineName: 'Processadora A',
-      segments: makeSegments([['running', 360, 500], ['fault', 500, 530], ['running', 530, 840]]),
+      segments: makeSegments([
+        ['running', 360, 500], ['fault', 500, 530], ['running', 530, 840],
+        ['running', 840, 1020], ['fault', 1020, 1050], ['running', 1050, 1320],
+        ['running', 1320, 1550], ['fault', 1550, 1580], ['running', 1580, 1800],
+      ]),
     },
     {
       machineId: 'line-2-m3', machineName: 'Inspeção Visual',
-      segments: makeSegments([['running', 360, 840]]),
+      segments: makeSegments([
+        ['running', 360, 840], ['running', 840, 1320], ['running', 1320, 1800],
+      ]),
     },
     {
       machineId: 'line-2-m4', machineName: 'Processadora B',
-      segments: makeSegments([['running', 360, 450], ['setup', 450, 480], ['running', 480, 840]]),
+      segments: makeSegments([
+        ['running', 360, 450], ['setup', 450, 480], ['running', 480, 840],
+        ['running', 840, 1200], ['setup', 1200, 1220], ['running', 1220, 1320],
+        ['running', 1320, 1700], ['setup', 1700, 1720], ['running', 1720, 1800],
+      ]),
     },
     {
       machineId: 'line-2-m5', machineName: 'Embaladora',
-      segments: makeSegments([['running', 360, 700], ['accumulation', 700, 730], ['running', 730, 840]]),
+      segments: makeSegments([
+        ['running', 360, 700], ['accumulation', 700, 730], ['running', 730, 840],
+        ['running', 840, 1200], ['accumulation', 1200, 1220], ['running', 1220, 1320],
+        ['running', 1320, 1700], ['accumulation', 1700, 1720], ['running', 1720, 1800],
+      ]),
     },
   ],
 };
@@ -231,17 +267,29 @@ function generateSpeedSamples(start: number, end: number, nominal: number, event
 }
 
 export const mockSpeedSamples: Record<string, SpeedSample[]> = {
-  'line-1': generateSpeedSamples(360, 840, 500, [
-    [420, 435, 0],   // shortage → speed drops
-    [510, 560, 50],  // fault on inspection
-    [540, 570, 80],  // accumulation
-    [660, 680, 30],  // fault on packer
-    [720, 740, 0],   // fault on feeder
-  ]),
-  'line-2': generateSpeedSamples(360, 840, 300, [
-    [450, 480, 0],   // setup
-    [500, 530, 40],  // fault
-    [600, 630, 0],   // shortage
-    [700, 730, 60],  // accumulation
-  ]),
+  'line-1': [
+    // 1º Turno (06:00–14:00)
+    ...generateSpeedSamples(360, 840, 500, [
+      [420, 435, 0], [510, 560, 50], [540, 570, 80], [660, 680, 30], [720, 740, 0],
+    ]),
+    // 2º Turno (14:00–22:00)
+    ...generateSpeedSamples(840, 1320, 500, [
+      [870, 890, 0], [960, 1000, 60], [1050, 1070, 0], [1140, 1160, 40], [1250, 1270, 0],
+    ]),
+    // 3º Turno (22:00–06:00 = 1320–1800)
+    ...generateSpeedSamples(1320, 1800, 500, [
+      [1380, 1400, 0], [1500, 1530, 70], [1620, 1650, 0], [1720, 1740, 50],
+    ]),
+  ],
+  'line-2': [
+    ...generateSpeedSamples(360, 840, 300, [
+      [450, 480, 0], [500, 530, 40], [600, 630, 0], [700, 730, 60],
+    ]),
+    ...generateSpeedSamples(840, 1320, 300, [
+      [900, 920, 0], [1020, 1050, 30], [1200, 1220, 0],
+    ]),
+    ...generateSpeedSamples(1320, 1800, 300, [
+      [1400, 1430, 0], [1550, 1580, 50], [1700, 1720, 0],
+    ]),
+  ],
 };
