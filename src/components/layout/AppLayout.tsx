@@ -1,14 +1,21 @@
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun, UserCircle } from 'lucide-react';
 import { mockLines } from '@/data/mockData';
 import { useLineStore } from '@/stores/lineStore';
 import { useTheme } from 'next-themes';
 import { ConnectionIndicator } from './ConnectionIndicator';
 import { useEffect, useState } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export function AppLayout() {
   const { selectedLineId, setSelectedLineId } = useLineStore();
