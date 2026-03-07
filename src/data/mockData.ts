@@ -231,17 +231,29 @@ function generateSpeedSamples(start: number, end: number, nominal: number, event
 }
 
 export const mockSpeedSamples: Record<string, SpeedSample[]> = {
-  'line-1': generateSpeedSamples(360, 840, 500, [
-    [420, 435, 0],   // shortage → speed drops
-    [510, 560, 50],  // fault on inspection
-    [540, 570, 80],  // accumulation
-    [660, 680, 30],  // fault on packer
-    [720, 740, 0],   // fault on feeder
-  ]),
-  'line-2': generateSpeedSamples(360, 840, 300, [
-    [450, 480, 0],   // setup
-    [500, 530, 40],  // fault
-    [600, 630, 0],   // shortage
-    [700, 730, 60],  // accumulation
-  ]),
+  'line-1': [
+    // 1º Turno (06:00–14:00)
+    ...generateSpeedSamples(360, 840, 500, [
+      [420, 435, 0], [510, 560, 50], [540, 570, 80], [660, 680, 30], [720, 740, 0],
+    ]),
+    // 2º Turno (14:00–22:00)
+    ...generateSpeedSamples(840, 1320, 500, [
+      [870, 890, 0], [960, 1000, 60], [1050, 1070, 0], [1140, 1160, 40], [1250, 1270, 0],
+    ]),
+    // 3º Turno (22:00–06:00 = 1320–1800)
+    ...generateSpeedSamples(1320, 1800, 500, [
+      [1380, 1400, 0], [1500, 1530, 70], [1620, 1650, 0], [1720, 1740, 50],
+    ]),
+  ],
+  'line-2': [
+    ...generateSpeedSamples(360, 840, 300, [
+      [450, 480, 0], [500, 530, 40], [600, 630, 0], [700, 730, 60],
+    ]),
+    ...generateSpeedSamples(840, 1320, 300, [
+      [900, 920, 0], [1020, 1050, 30], [1200, 1220, 0],
+    ]),
+    ...generateSpeedSamples(1320, 1800, 300, [
+      [1400, 1430, 0], [1550, 1580, 50], [1700, 1720, 0],
+    ]),
+  ],
 };
