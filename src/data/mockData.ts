@@ -1,5 +1,5 @@
 import { Machine, ProductionLine, Stop, DLIDataPoint, OEEHistoryPoint, Site, Equipment, ProductionFlow } from '@/types/production';
-import { MachineTimeline, TimelineSegment, TimelineStatus } from '@/components/production/LineTimeline';
+import { MachineTimeline, TimelineSegment, TimelineStatus, SpeedSample } from '@/components/production/LineTimeline';
 
 const createMachines = (lineId: string): Machine[] => [
   {
