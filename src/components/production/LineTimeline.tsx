@@ -126,18 +126,18 @@ function SpeedOverlay({ samples, start, totalMin, nominalSpeed, height }: {
 }) {
   if (samples.length < 2) return null;
 
-  const maxSpeed = nominalSpeed * 1.15; // allow 15% over nominal for headroom
-  const points = samples
-    .filter(s => s.min >= start && s.min <= start + totalMin)
-    .map(s => ({
-      x: ((s.min - start) / totalMin) * 100,
-      y: height - (s.speed / maxSpeed) * height,
-    }));
+  const maxSpeed = nominalSpeed * 1.15;
+  const filtered = samples.filter(s => s.min >= start && s.min <= start + totalMin);
+  const points = filtered.map(s => ({
+    x: ((s.min - start) / totalMin) * 100,
+    y: height - (s.speed / maxSpeed) * height,
+  }));
 
   if (points.length < 2) return null;
 
   const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-  // Nominal line
+  // Area fill path (close to bottom)
+  const areaD = pathD + ` L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`;
   const nominalY = height - (nominalSpeed / maxSpeed) * height;
 
   return (
@@ -146,22 +146,40 @@ function SpeedOverlay({ samples, start, totalMin, nominalSpeed, height }: {
       preserveAspectRatio="none"
       className="absolute inset-0 w-full h-full pointer-events-none"
     >
+      <defs>
+        <linearGradient id="speedGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="hsl(var(--foreground))" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="hsl(var(--foreground))" stopOpacity="0.03" />
+        </linearGradient>
+      </defs>
+      {/* Area fill — subtle gradient under the line */}
+      <path d={areaD} fill="url(#speedGrad)" />
       {/* Nominal speed reference */}
       <line
         x1="0" y1={nominalY} x2="100" y2={nominalY}
         stroke="hsl(var(--foreground))"
-        strokeWidth="0.3"
-        strokeDasharray="1.5 1"
-        opacity="0.4"
+        strokeWidth="0.4"
+        strokeDasharray="2 1.5"
+        opacity="0.35"
+        vectorEffect="non-scaling-stroke"
       />
-      {/* Speed line */}
+      {/* Speed line — thicker, white, with slight glow */}
       <path
         d={pathD}
         fill="none"
         stroke="hsl(var(--foreground))"
-        strokeWidth="0.6"
-        opacity="0.85"
+        strokeWidth="2"
+        opacity="0.3"
         vectorEffect="non-scaling-stroke"
+      />
+      <path
+        d={pathD}
+        fill="none"
+        stroke="hsl(var(--foreground))"
+        strokeWidth="1.5"
+        opacity="0.9"
+        vectorEffect="non-scaling-stroke"
+        strokeLinejoin="round"
       />
     </svg>
   );
@@ -233,14 +251,23 @@ export function LineTimeline({ machines, timelines, speedSamples, nominalSpeed, 
         </button>
       </div>
 
+      {/* All rows share a single container for vertical alignment */}
       <div>
-        {/* Aggregated line bar — with speed overlay */}
-        <div className={cn('flex items-center gap-2', expanded && 'mb-2')}>
+        {/* Aggregated line row */}
+        <div className="flex items-center gap-2 mb-1">
           <div className={cn(LABEL_W, 'shrink-0 flex items-center gap-1.5 justify-end')}>
             <Layers className="h-3 w-3 text-primary" />
             <span className="text-[11px] font-medium text-foreground">Linha</span>
           </div>
           <div className="flex-1 relative" style={{ height: `${barHeightPx}px` }}>
+            {/* Vertical grid lines on the bar area */}
+            {ticks.map((m) => (
+              <div
+                key={`grid-${m}`}
+                className="absolute top-0 h-full border-l border-foreground/10"
+                style={{ left: `${((m - start) / totalMin) * 100}%` }}
+              />
+            ))}
             <TimelineBar segments={aggregated} start={start} totalMin={totalMin} height="h-full" />
             {speedSamples && nominalSpeed && (
               <SpeedOverlay
@@ -255,20 +282,23 @@ export function LineTimeline({ machines, timelines, speedSamples, nominalSpeed, 
         </div>
 
         {/* Expanded equipment swimlanes */}
-        {expanded && (
-          <div className="space-y-1 border-l-2 border-border ml-[6.5rem] pl-0">
-            {timelines.map((tl) => (
-              <div key={tl.machineId} className="flex items-center gap-2">
-                <span className={cn('w-[5.5rem] shrink-0 text-[10px] text-muted-foreground text-right truncate tabular-nums pr-2')}>
-                  {tl.machineName}
-                </span>
-                <div className="flex-1">
-                  <TimelineBar segments={tl.segments} start={start} totalMin={totalMin} height="h-3" />
-                </div>
-              </div>
-            ))}
+        {expanded && timelines.map((tl) => (
+          <div key={tl.machineId} className="flex items-center gap-2 mb-0.5">
+            <span className={cn(LABEL_W, 'shrink-0 text-[10px] text-muted-foreground text-right truncate tabular-nums')}>
+              {tl.machineName}
+            </span>
+            <div className="flex-1 relative h-3">
+              {ticks.map((m) => (
+                <div
+                  key={`grid-eq-${tl.machineId}-${m}`}
+                  className="absolute top-0 h-full border-l border-foreground/10"
+                  style={{ left: `${((m - start) / totalMin) * 100}%` }}
+                />
+              ))}
+              <TimelineBar segments={tl.segments} start={start} totalMin={totalMin} height="h-full" />
+            </div>
           </div>
-        )}
+        ))}
 
         {/* Shared time axis */}
         <div className="flex items-start gap-2">
