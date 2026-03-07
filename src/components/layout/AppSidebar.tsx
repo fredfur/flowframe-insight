@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, BarChart3, Settings, Factory, LogOut } from 'lucide-react';
+import { Activity, AlertTriangle, BarChart3, Settings, Factory, LogOut, ClipboardList } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 const navItems = [
   { title: 'Linha ao Vivo', url: '/', icon: Activity },
   { title: 'Paradas', url: '/paradas', icon: AlertTriangle },
+  { title: 'Produção H/H', url: '/producao', icon: ClipboardList },
   { title: 'Dashboard', url: '/dashboard', icon: BarChart3 },
   { title: 'Configurações', url: '/configuracoes', icon: Settings },
 ];
