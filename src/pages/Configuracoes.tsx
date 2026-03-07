@@ -15,7 +15,7 @@ import { STOP_CATEGORIES } from '@/types/production';
 import type { Site, ProductionLine, Equipment, ProductionFlow, Transport } from '@/types/production';
 import {
   Settings, Building2, Factory, Cog, GitBranch, Gauge, Tag,
-  Plus, Pencil, Trash2, ChevronRight, ChevronDown, MapPin,
+  Plus, Pencil, Trash2, ChevronRight, ChevronDown, MapPin, ArrowRightLeft,
 } from 'lucide-react';
 
 type DialogMode = 'create' | 'edit';
