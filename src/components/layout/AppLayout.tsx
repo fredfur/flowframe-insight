@@ -33,7 +33,7 @@ export function AppLayout() {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-12 flex items-center justify-between border-b px-4 bg-background shrink-0">
+          <header className="h-12 flex items-center justify-between border-b px-4 bg-background shrink-0 sticky top-0 z-30">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors" />
               <div className="h-4 w-px bg-border" />
