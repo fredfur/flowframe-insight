@@ -3,7 +3,8 @@ import { OEEGauge } from '@/components/production/OEEGauge';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
 import { Factory, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
-import { AIInsightChips, MOCK_DASHBOARD_INSIGHTS, useChatAssistant } from '@/components/ai/AIInsights';
+import { AIInsightChips, MOCK_DASHBOARD_INSIGHTS } from '@/components/ai/AIInsights';
+import { useNavigate } from 'react-router-dom';
 
 const oeeChartConfig = {
   oee: { label: 'OEE', color: 'hsl(var(--primary))' },
@@ -22,7 +23,7 @@ const paretoConfig = {
 };
 
 export default function Dashboard() {
-  const { askAI } = useChatAssistant();
+  const navigate = useNavigate();
   const totalOEE = mockLines.reduce((sum, l) => sum + l.oee.oee, 0) / mockLines.length;
   const totalThroughput = mockLines.reduce((sum, l) => sum + l.throughput, 0);
   const totalStoppedMachines = mockLines.reduce((sum, l) => sum + l.machines.filter(m => m.status !== 'running').length, 0);
@@ -31,7 +32,7 @@ export default function Dashboard() {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h1 className="text-base font-semibold text-foreground">Dashboard</h1>
-        <AIInsightChips insights={MOCK_DASHBOARD_INSIGHTS} onAskAI={askAI} />
+        <AIInsightChips insights={MOCK_DASHBOARD_INSIGHTS} onAskAI={() => navigate('/assistente')} />
       </div>
 
       {/* Summary */}
