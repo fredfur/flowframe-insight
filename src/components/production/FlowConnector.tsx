@@ -44,9 +44,9 @@ export function FlowConnector({ transport }: FlowConnectorProps) {
         {/* Flow direction arrow overlay */}
         <ArrowRight className="absolute inset-0 m-auto h-2.5 w-2.5 text-foreground/50" />
       </div>
-      {/* Label */}
-      <span className={cn('text-[9px] tabular-nums leading-none', meta.color)}>
-        {transport.currentUnits}/{transport.capacity}
+      {/* Percentage label */}
+      <span className={cn('text-[9px] tabular-nums leading-none font-medium', meta.color)}>
+        {fillPercent}%
       </span>
     </div>
   );

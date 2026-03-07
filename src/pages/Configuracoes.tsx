@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { mockSites, mockLines, mockEquipments, mockFlows } from '@/data/mockData';
 import { STOP_CATEGORIES } from '@/types/production';
-import type { Site, ProductionLine, Equipment, ProductionFlow } from '@/types/production';
+import type { Site, ProductionLine, Equipment, ProductionFlow, Transport } from '@/types/production';
 import {
   Settings, Building2, Factory, Cog, GitBranch, Gauge, Tag,
   Plus, Pencil, Trash2, ChevronRight, ChevronDown, MapPin,
