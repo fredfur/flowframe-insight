@@ -466,10 +466,12 @@ export default function Configuracoes() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
-            <div>
-              <Label className="text-[11px]">Nome</Label>
-              <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Nome" className="h-8 text-sm mt-1" />
-            </div>
+            {dialogType !== 'transport' && (
+              <div>
+                <Label className="text-[11px]">Nome</Label>
+                <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Nome" className="h-8 text-sm mt-1" />
+              </div>
+            )}
 
             {dialogType === 'site' && (
               <div>
@@ -478,10 +480,15 @@ export default function Configuracoes() {
               </div>
             )}
 
-            {(dialogType === 'line' || dialogType === 'equipment') && (
+            {(dialogType === 'line' || dialogType === 'equipment' || dialogType === 'transport') && (
               <div>
                 <Label className="text-[11px]">Tipo</Label>
-                <Input value={formType} onChange={e => setFormType(e.target.value)} placeholder="Ex: Envase, Processor" className="h-8 text-sm mt-1" />
+                <Input
+                  value={formType}
+                  onChange={e => setFormType(e.target.value)}
+                  placeholder={dialogType === 'transport' ? 'conveyor, buffer, gravity' : 'Ex: Envase, Processor'}
+                  className="h-8 text-sm mt-1"
+                />
               </div>
             )}
 
@@ -498,12 +505,19 @@ export default function Configuracoes() {
                 <Input value={formSku} onChange={e => setFormSku(e.target.value)} placeholder="Ex: SKU-204" className="h-8 text-sm mt-1 font-mono" />
               </div>
             )}
+
+            {dialogType === 'transport' && (
+              <div>
+                <Label className="text-[11px]">Capacidade (unidades)</Label>
+                <Input type="number" value={formCapacity} onChange={e => setFormCapacity(e.target.value)} placeholder="50" className="h-8 text-sm mt-1" />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)} className="text-xs">
               Cancelar
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={!formName.trim()} className="text-xs">
+            <Button size="sm" onClick={handleSave} disabled={dialogType !== 'transport' && !formName.trim()} className="text-xs">
               {dialogMode === 'create' ? 'Criar' : 'Salvar'}
             </Button>
           </DialogFooter>
