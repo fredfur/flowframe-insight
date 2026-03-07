@@ -81,6 +81,10 @@ export default function Configuracoes() {
     } else if (type === 'flow') {
       const f = flows.find(f => f.id === id);
       if (f) { setFormName(f.name); setFormSku(f.sku); setFormNominal(String(f.nominalSpeed)); setDialogContext(f.lineId); }
+    } else if (type === 'transport') {
+      const line = lines.find(l => l.transports.some(t => t.id === id));
+      const t = line?.transports.find(t => t.id === id);
+      if (t && line) { setFormCapacity(String(t.capacity)); setFormType(t.type); setDialogContext(line.id); }
     }
     setDialogOpen(true);
   };
