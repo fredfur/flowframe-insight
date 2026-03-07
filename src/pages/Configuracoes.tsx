@@ -30,7 +30,7 @@ export default function Configuracoes() {
   // Expansion state
   const [expandedSite, setExpandedSite] = useState<string | null>('site-1');
   const [expandedLine, setExpandedLine] = useState<string | null>('line-1');
-  const [activeTab, setActiveTab] = useState<'equipments' | 'flows'>('equipments');
+  const [activeTab, setActiveTab] = useState<'equipments' | 'flows' | 'transports'>('equipments');
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
