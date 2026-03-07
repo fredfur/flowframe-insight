@@ -46,7 +46,7 @@ export default function LineLive() {
 
   return (
     <div className="flex h-full gap-0">
-      <div className="flex-1 flex flex-col gap-6 min-w-0 overflow-y-auto">
+      <div className="flex-1 flex flex-col gap-4 md:gap-6 min-w-0 overflow-y-auto">
         <div>
           <h1 className="text-lg font-semibold text-foreground">{line.name}</h1>
           <p className="text-sm text-muted-foreground">
@@ -62,11 +62,12 @@ export default function LineLive() {
           speedSamples={mockSpeedSamples[line.id]}
           nominalSpeed={line.nominalSpeed}
         />
+
         {/* Flow */}
         <div>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <p className="text-sm font-medium text-foreground">Fluxo de Linha</p>
-            <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+            <div className="hidden md:flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
               <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-running" /> Produzindo</span>
               <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-fault" /> Falha</span>
               <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-shortage" /> Falta</span>
@@ -76,9 +77,10 @@ export default function LineLive() {
               <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-disconnected" /> Desconectado</span>
             </div>
           </div>
-          <div className="flex items-stretch gap-0 overflow-x-auto pb-2 rounded-lg border bg-card p-4 w-full">
+
+          {/* Desktop: horizontal flow */}
+          <div className="hidden md:flex items-stretch gap-0 overflow-x-auto pb-2 rounded-lg border bg-card p-4 w-full">
             {flowNodes.map((node, i) => {
-              // Find transport between this node and next
               const nextNode = flowNodes[i + 1];
               const transport = nextNode
                 ? line.transports.find(t => t.fromPosition === node.position && t.toPosition === nextNode.position)
@@ -92,6 +94,34 @@ export default function LineLive() {
                     onMachineClick={setSelectedMachine}
                   />
                   {i < flowNodes.length - 1 && <FlowConnector transport={transport} />}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Mobile: vertical stacked flow */}
+          <div className="md:hidden rounded-lg border bg-card p-3 space-y-1">
+            {flowNodes.map((node, i) => {
+              const nextNode = flowNodes[i + 1];
+              const transport = nextNode
+                ? line.transports.find(t => t.fromPosition === node.position && t.toPosition === nextNode.position)
+                : undefined;
+
+              return (
+                <div key={node.position}>
+                  {/* Machine card — compact row for mobile */}
+                  {node.machines.map(machine => (
+                    <MobileFlowCard
+                      key={machine.id}
+                      machine={machine}
+                      isSelected={selectedMachine?.id === machine.id}
+                      onClick={() => setSelectedMachine(machine)}
+                    />
+                  ))}
+                  {/* Transport connector — vertical */}
+                  {transport && i < flowNodes.length - 1 && (
+                    <MobileTransportConnector percent={transport.accumulationPercent} accumulation={transport.accumulation} />
+                  )}
                 </div>
               );
             })}
@@ -133,6 +163,87 @@ export default function LineLive() {
       {selectedMachine && (
         <MachineDetailPanel machine={selectedMachine} onClose={() => setSelectedMachine(null)} />
       )}
+    </div>
+  );
+}
+
+// --- Mobile-specific subcomponents ---
+
+import { cn } from '@/lib/utils';
+import { TransportAccumulationLevel, MachineStatus } from '@/types/production';
+import { ArrowDown } from 'lucide-react';
+
+const mobileStatusColors: Record<MachineStatus, string> = {
+  running: 'bg-status-running',
+  fault: 'bg-status-fault',
+  shortage: 'bg-status-shortage',
+  accumulation: 'bg-status-accumulation',
+  scheduled: 'bg-status-scheduled',
+  setup: 'bg-status-setup',
+  disconnected: 'bg-status-disconnected',
+};
+
+const statusLabels: Record<MachineStatus, string> = {
+  running: 'Produzindo',
+  fault: 'Falha',
+  shortage: 'Falta',
+  accumulation: 'Acúmulo',
+  scheduled: 'Programada',
+  setup: 'Setup',
+  disconnected: 'Desconectado',
+};
+
+function MobileFlowCard({ machine, isSelected, onClick }: { machine: Machine; isSelected: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'w-full flex items-center gap-3 rounded-lg border bg-background p-2.5 transition-all',
+        isSelected ? 'border-primary ring-1 ring-primary/20' : 'border-border',
+      )}
+    >
+      <div className={cn('w-1 h-8 rounded-full shrink-0', mobileStatusColors[machine.status])} />
+      <div className="flex-1 min-w-0 text-left">
+        <p className="text-xs font-medium text-foreground truncate">{machine.name}</p>
+        <p className="text-[10px] text-muted-foreground">
+          {machine.status === 'running' ? `${machine.throughput} u/h` : statusLabels[machine.status]}
+        </p>
+      </div>
+      <span className={cn(
+        'text-sm font-semibold tabular-nums shrink-0',
+        machine.oee.availability >= 90 ? 'text-oee-excellent' :
+        machine.oee.availability >= 70 ? 'text-oee-warning' : 'text-oee-critical'
+      )}>
+        {machine.oee.availability.toFixed(0)}%
+      </span>
+    </button>
+  );
+}
+
+function MobileTransportConnector({ percent, accumulation }: { percent: number; accumulation: TransportAccumulationLevel }) {
+  return (
+    <div className="flex items-center justify-center gap-2 py-1">
+      <div className="relative w-16 h-2 rounded-full border border-border/50 overflow-hidden bg-muted/20">
+        <div
+          className={cn(
+            'absolute inset-y-0 left-0 rounded-full',
+            accumulation === 'critical' ? 'bg-status-fault' :
+            accumulation === 'high' ? 'bg-status-accumulation' :
+            accumulation === 'normal' ? 'bg-status-running' :
+            accumulation === 'low' ? 'bg-status-running/60' :
+            'bg-muted-foreground/20'
+          )}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      <ArrowDown className="h-3 w-3 text-muted-foreground/40" />
+      <span className={cn(
+        'text-[9px] tabular-nums font-medium',
+        accumulation === 'critical' ? 'text-status-fault' :
+        accumulation === 'high' ? 'text-status-accumulation' : 'text-muted-foreground'
+      )}>
+        {percent}%
+      </span>
     </div>
   );
 }
