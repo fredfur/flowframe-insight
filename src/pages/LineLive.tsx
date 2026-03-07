@@ -9,6 +9,7 @@ import { LineMetricsBar } from '@/components/production/LineMetricsBar';
 import { LineTimeline } from '@/components/production/LineTimeline';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
+import { AIInsightCards, MOCK_LINELIVE_INSIGHTS, useChatAssistant } from '@/components/ai/AIInsights';
 
 const vGraphConfig = {
   throughput: { label: 'Vazão Real', color: 'hsl(var(--primary))' },
@@ -23,6 +24,7 @@ export default function LineLive() {
   const { selectedLineId } = useLineStore();
   const line = mockLines.find(l => l.id === selectedLineId) ?? mockLines[0];
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
+  const { askAI } = useChatAssistant();
 
   const sortedMachines = [...line.machines].sort((a, b) => a.position - b.position);
 
@@ -129,8 +131,10 @@ export default function LineLive() {
           </div>
         </div>
 
+        {/* AI Insights */}
+        <AIInsightCards insights={MOCK_LINELIVE_INSIGHTS} onAskAI={askAI} />
+
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="rounded-lg border bg-card p-4">
             <p className="text-sm font-medium text-foreground mb-4">V-Graph — Vazão por Máquina</p>
             <ChartContainer config={vGraphConfig} className="h-[200px] w-full">
