@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -10,65 +11,648 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { mockSites, mockLines, mockEquipments, mockFlows } from '@/data/mockData';
 import { STOP_CATEGORIES } from '@/types/production';
-import type { Site, ProductionLine, Equipment, ProductionFlow, Transport } from '@/types/production';
+import type { Site, ProductionLine, Equipment, ProductionFlow, Transport, StopCategoryInfo, StopCategory } from '@/types/production';
 import {
   Settings, Building2, Factory, Cog, GitBranch, Gauge, Tag,
   Plus, Pencil, Trash2, ChevronRight, ChevronDown, MapPin, ArrowRightLeft,
+  Users, Package, ShieldCheck, UserCircle, Mail, Crown,
 } from 'lucide-react';
 
-type DialogMode = 'create' | 'edit';
+// ─── Types ───
+
+type TopTab = 'structure' | 'users' | 'products' | 'stopCategories';
+
+interface UserRecord {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'leadership' | 'operator';
+  status: 'active' | 'inactive';
+  siteId?: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  sku: string;
+  category: string;
+  nominalSpeed: number;
+  lineIds: string[];
+}
+
+interface StopCategoryRecord {
+  id: string;
+  code: StopCategory;
+  label: string;
+  color: string;
+  isPlanned: boolean;
+}
+
+// ─── Mock data ───
+
+const MOCK_USERS: UserRecord[] = [
+  { id: 'u1', name: 'Carlos Silva', email: 'carlos@flowvision.com', role: 'admin', status: 'active' },
+  { id: 'u2', name: 'Ana Souza', email: 'ana@flowvision.com', role: 'leadership', status: 'active', siteId: 'site-1' },
+  { id: 'u3', name: 'João Oliveira', email: 'joao@flowvision.com', role: 'operator', status: 'active', siteId: 'site-1' },
+  { id: 'u4', name: 'Maria Santos', email: 'maria@flowvision.com', role: 'operator', status: 'inactive', siteId: 'site-1' },
+  { id: 'u5', name: 'Pedro Costa', email: 'pedro@flowvision.com', role: 'leadership', status: 'active', siteId: 'site-1' },
+];
+
+const MOCK_PRODUCTS: Product[] = [
+  { id: 'p1', name: 'Água Mineral 500ml', sku: 'SKU-101', category: 'Bebidas', nominalSpeed: 500, lineIds: ['line-1'] },
+  { id: 'p2', name: 'Suco Natural 1L', sku: 'SKU-204', category: 'Bebidas', nominalSpeed: 350, lineIds: ['line-1'] },
+  { id: 'p3', name: 'Refrigerante 350ml', sku: 'SKU-305', category: 'Bebidas', nominalSpeed: 600, lineIds: ['line-1', 'line-2'] },
+  { id: 'p4', name: 'Detergente 500ml', sku: 'SKU-410', category: 'Limpeza', nominalSpeed: 450, lineIds: ['line-2'] },
+  { id: 'p5', name: 'Sabonete Líquido 250ml', sku: 'SKU-520', category: 'Higiene', nominalSpeed: 400, lineIds: ['line-2'] },
+];
+
+const MOCK_STOP_CATS: StopCategoryRecord[] = STOP_CATEGORIES.map(c => ({
+  id: c.id,
+  code: c.id,
+  label: c.label,
+  color: c.color,
+  isPlanned: c.id === 'planned' || c.id === 'setup',
+}));
+
+const roleLabels: Record<UserRecord['role'], string> = {
+  admin: 'Administrador',
+  leadership: 'Liderança',
+  operator: 'Operação',
+};
+
+const roleBadgeStyles: Record<UserRecord['role'], string> = {
+  admin: 'bg-primary/10 text-primary border-primary/20',
+  leadership: 'bg-status-scheduled/10 text-status-scheduled border-status-scheduled/20',
+  operator: 'bg-muted text-muted-foreground border-border',
+};
+
+// ─── Tab Buttons ───
+
+const tabs: { id: TopTab; label: string; icon: typeof Settings }[] = [
+  { id: 'structure', label: 'Estrutura', icon: Building2 },
+  { id: 'users', label: 'Usuários', icon: Users },
+  { id: 'products', label: 'Produtos', icon: Package },
+  { id: 'stopCategories', label: 'Categorias de Parada', icon: Tag },
+];
+
+// ─── Main Component ───
 
 export default function Configuracoes() {
-  // Local state mirrors (would be replaced by DB later)
+  const [activeTopTab, setActiveTopTab] = useState<TopTab>('structure');
+
+  return (
+    <div className="space-y-5 max-w-5xl">
+      <div>
+        <h1 className="text-base font-semibold text-foreground flex items-center gap-2">
+          <Settings style={{ width: '1.3rem', height: '1.3rem' }} /> Configurações
+        </h1>
+        <p className="text-[11px] text-muted-foreground mt-0.5">
+          Gerencie estrutura, usuários, produtos e categorias de parada.
+        </p>
+      </div>
+
+      {/* Tab navigation */}
+      <div className="flex items-center gap-1 border-b">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTopTab(tab.id)}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition-colors -mb-px ${
+              activeTopTab === tab.id
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <tab.icon className="h-3.5 w-3.5" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTopTab === 'structure' && <StructureTab />}
+      {activeTopTab === 'users' && <UsersTab />}
+      {activeTopTab === 'products' && <ProductsTab />}
+      {activeTopTab === 'stopCategories' && <StopCategoriesTab />}
+    </div>
+  );
+}
+
+// ─── Users Tab ───
+
+function UsersTab() {
+  const [users, setUsers] = useState<UserRecord[]>(MOCK_USERS);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
+  const [formName, setFormName] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [formRole, setFormRole] = useState<UserRecord['role']>('operator');
+
+  const openCreate = () => {
+    setEditingUser(null);
+    setFormName(''); setFormEmail(''); setFormRole('operator');
+    setDialogOpen(true);
+  };
+
+  const openEdit = (user: UserRecord) => {
+    setEditingUser(user);
+    setFormName(user.name); setFormEmail(user.email); setFormRole(user.role);
+    setDialogOpen(true);
+  };
+
+  const handleSave = () => {
+    if (editingUser) {
+      setUsers(prev => prev.map(u => u.id === editingUser.id
+        ? { ...u, name: formName, email: formEmail, role: formRole }
+        : u
+      ));
+    } else {
+      setUsers(prev => [...prev, {
+        id: `u-${Date.now()}`,
+        name: formName,
+        email: formEmail,
+        role: formRole,
+        status: 'active',
+      }]);
+    }
+    setDialogOpen(false);
+  };
+
+  const toggleStatus = (id: string) => {
+    setUsers(prev => prev.map(u => u.id === id
+      ? { ...u, status: u.status === 'active' ? 'inactive' : 'active' }
+      : u
+    ));
+  };
+
+  const handleDelete = (id: string) => {
+    setUsers(prev => prev.filter(u => u.id !== id));
+  };
+
+  const activeCount = users.filter(u => u.status === 'active').length;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-status-running" /> {activeCount} ativos</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-muted-foreground/30" /> {users.length - activeCount} inativos</span>
+          </div>
+        </div>
+        <Button size="sm" onClick={openCreate} className="gap-1.5 text-xs">
+          <Plus className="h-3.5 w-3.5" /> Novo Usuário
+        </Button>
+      </div>
+
+      <div className="rounded-lg border bg-card overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-[11px]">Usuário</TableHead>
+              <TableHead className="text-[11px]">E-mail</TableHead>
+              <TableHead className="text-[11px]">Função</TableHead>
+              <TableHead className="text-[11px]">Status</TableHead>
+              <TableHead className="text-[11px] text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.map(user => (
+              <TableRow key={user.id}>
+                <TableCell>
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted">
+                      <UserCircle className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <span className="text-xs font-medium text-foreground">{user.name}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">{user.email}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className={`text-[10px] ${roleBadgeStyles[user.role]}`}>
+                    {user.role === 'admin' && <Crown className="h-2.5 w-2.5 mr-1" />}
+                    {user.role === 'leadership' && <ShieldCheck className="h-2.5 w-2.5 mr-1" />}
+                    {roleLabels[user.role]}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <button onClick={() => toggleStatus(user.id)}>
+                    <Badge variant={user.status === 'active' ? 'default' : 'secondary'} className="text-[10px] cursor-pointer">
+                      {user.status === 'active' ? 'Ativo' : 'Inativo'}
+                    </Badge>
+                  </button>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(user)}>
+                      <Pencil className="h-3 w-3 text-muted-foreground" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(user.id)}>
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">{editingUser ? 'Editar Usuário' : 'Novo Usuário'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-[11px]">Nome</Label>
+              <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Nome completo" className="h-8 text-sm mt-1" />
+            </div>
+            <div>
+              <Label className="text-[11px]">E-mail</Label>
+              <Input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="email@empresa.com" className="h-8 text-sm mt-1" />
+            </div>
+            <div>
+              <Label className="text-[11px]">Função</Label>
+              <Select value={formRole} onValueChange={(v: UserRecord['role']) => setFormRole(v)}>
+                <SelectTrigger className="h-8 text-sm mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="leadership">Liderança</SelectItem>
+                  <SelectItem value="operator">Operação</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)} className="text-xs">Cancelar</Button>
+            <Button size="sm" onClick={handleSave} disabled={!formName.trim() || !formEmail.trim()} className="text-xs">
+              {editingUser ? 'Salvar' : 'Criar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── Products Tab ───
+
+function ProductsTab() {
+  const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [formName, setFormName] = useState('');
+  const [formSku, setFormSku] = useState('');
+  const [formCategory, setFormCategory] = useState('');
+  const [formNominal, setFormNominal] = useState('');
+
+  const openCreate = () => {
+    setEditingProduct(null);
+    setFormName(''); setFormSku(''); setFormCategory(''); setFormNominal('');
+    setDialogOpen(true);
+  };
+
+  const openEdit = (product: Product) => {
+    setEditingProduct(product);
+    setFormName(product.name); setFormSku(product.sku);
+    setFormCategory(product.category); setFormNominal(String(product.nominalSpeed));
+    setDialogOpen(true);
+  };
+
+  const handleSave = () => {
+    if (editingProduct) {
+      setProducts(prev => prev.map(p => p.id === editingProduct.id
+        ? { ...p, name: formName, sku: formSku, category: formCategory, nominalSpeed: Number(formNominal) || 0 }
+        : p
+      ));
+    } else {
+      setProducts(prev => [...prev, {
+        id: `p-${Date.now()}`,
+        name: formName,
+        sku: formSku,
+        category: formCategory,
+        nominalSpeed: Number(formNominal) || 0,
+        lineIds: [],
+      }]);
+    }
+    setDialogOpen(false);
+  };
+
+  const handleDelete = (id: string) => {
+    setProducts(prev => prev.filter(p => p.id !== id));
+  };
+
+  const categories = [...new Set(products.map(p => p.category))];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {categories.map(cat => (
+            <Badge key={cat} variant="outline" className="text-[10px]">{cat}</Badge>
+          ))}
+        </div>
+        <Button size="sm" onClick={openCreate} className="gap-1.5 text-xs">
+          <Plus className="h-3.5 w-3.5" /> Novo Produto
+        </Button>
+      </div>
+
+      <div className="rounded-lg border bg-card overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-[11px]">Produto</TableHead>
+              <TableHead className="text-[11px]">SKU</TableHead>
+              <TableHead className="text-[11px]">Categoria</TableHead>
+              <TableHead className="text-[11px]">Vel. Nominal</TableHead>
+              <TableHead className="text-[11px]">Linhas</TableHead>
+              <TableHead className="text-[11px] text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {products.map(product => (
+              <TableRow key={product.id}>
+                <TableCell>
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
+                      <Package className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <span className="text-xs font-medium text-foreground">{product.name}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-xs font-mono text-muted-foreground">{product.sku}</span>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="secondary" className="text-[10px]">{product.category}</Badge>
+                </TableCell>
+                <TableCell className="text-xs tabular-nums text-muted-foreground">{product.nominalSpeed} u/h</TableCell>
+                <TableCell>
+                  <div className="flex gap-1">
+                    {product.lineIds.map(lid => {
+                      const line = mockLines.find(l => l.id === lid);
+                      return line ? (
+                        <Badge key={lid} variant="outline" className="text-[9px]">{line.name}</Badge>
+                      ) : null;
+                    })}
+                    {product.lineIds.length === 0 && <span className="text-[10px] text-muted-foreground">—</span>}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(product)}>
+                      <Pencil className="h-3 w-3 text-muted-foreground" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(product.id)}>
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">{editingProduct ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-[11px]">Nome do Produto</Label>
+              <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Ex: Água Mineral 500ml" className="h-8 text-sm mt-1" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-[11px]">SKU</Label>
+                <Input value={formSku} onChange={e => setFormSku(e.target.value)} placeholder="SKU-101" className="h-8 text-sm mt-1 font-mono" />
+              </div>
+              <div>
+                <Label className="text-[11px]">Categoria</Label>
+                <Input value={formCategory} onChange={e => setFormCategory(e.target.value)} placeholder="Bebidas" className="h-8 text-sm mt-1" />
+              </div>
+            </div>
+            <div>
+              <Label className="text-[11px]">Velocidade Nominal (u/h)</Label>
+              <Input type="number" value={formNominal} onChange={e => setFormNominal(e.target.value)} placeholder="500" className="h-8 text-sm mt-1" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)} className="text-xs">Cancelar</Button>
+            <Button size="sm" onClick={handleSave} disabled={!formName.trim() || !formSku.trim()} className="text-xs">
+              {editingProduct ? 'Salvar' : 'Criar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── Stop Categories Tab ───
+
+function StopCategoriesTab() {
+  const [categories, setCategories] = useState<StopCategoryRecord[]>(MOCK_STOP_CATS);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingCat, setEditingCat] = useState<StopCategoryRecord | null>(null);
+  const [formLabel, setFormLabel] = useState('');
+  const [formColor, setFormColor] = useState('hsl(0, 72%, 51%)');
+  const [formPlanned, setFormPlanned] = useState(false);
+
+  const openCreate = () => {
+    setEditingCat(null);
+    setFormLabel(''); setFormColor('hsl(0, 72%, 51%)'); setFormPlanned(false);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (cat: StopCategoryRecord) => {
+    setEditingCat(cat);
+    setFormLabel(cat.label); setFormColor(cat.color); setFormPlanned(cat.isPlanned);
+    setDialogOpen(true);
+  };
+
+  const handleSave = () => {
+    if (editingCat) {
+      setCategories(prev => prev.map(c => c.id === editingCat.id
+        ? { ...c, label: formLabel, color: formColor, isPlanned: formPlanned }
+        : c
+      ));
+    } else {
+      const code = formLabel.toLowerCase().replace(/\s+/g, '_') as StopCategory;
+      setCategories(prev => [...prev, {
+        id: code,
+        code,
+        label: formLabel,
+        color: formColor,
+        isPlanned: formPlanned,
+      }]);
+    }
+    setDialogOpen(false);
+  };
+
+  const handleDelete = (id: string) => {
+    setCategories(prev => prev.filter(c => c.id !== id));
+  };
+
+  const plannedCount = categories.filter(c => c.isPlanned).length;
+  const unplannedCount = categories.length - plannedCount;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span>{plannedCount} planejadas</span>
+          <span className="text-border">·</span>
+          <span>{unplannedCount} não planejadas</span>
+        </div>
+        <Button size="sm" onClick={openCreate} className="gap-1.5 text-xs">
+          <Plus className="h-3.5 w-3.5" /> Nova Categoria
+        </Button>
+      </div>
+
+      <div className="rounded-lg border bg-card overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-[11px]">Cor</TableHead>
+              <TableHead className="text-[11px]">Categoria</TableHead>
+              <TableHead className="text-[11px]">Tipo</TableHead>
+              <TableHead className="text-[11px] text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {categories.map(cat => (
+              <TableRow key={cat.id}>
+                <TableCell>
+                  <div className="h-5 w-5 rounded-md border" style={{ backgroundColor: cat.color }} />
+                </TableCell>
+                <TableCell>
+                  <span className="text-xs font-medium text-foreground">{cat.label}</span>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={cat.isPlanned ? 'secondary' : 'outline'} className="text-[10px]">
+                    {cat.isPlanned ? 'Planejada' : 'Não planejada'}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(cat)}>
+                      <Pencil className="h-3 w-3 text-muted-foreground" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(cat.id)}>
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">{editingCat ? 'Editar Categoria' : 'Nova Categoria'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-[11px]">Nome da Categoria</Label>
+              <Input value={formLabel} onChange={e => setFormLabel(e.target.value)} placeholder="Ex: Manutenção Corretiva" className="h-8 text-sm mt-1" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-[11px]">Cor</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <input
+                    type="color"
+                    value={formColor.startsWith('hsl') ? '#e74c3c' : formColor}
+                    onChange={e => setFormColor(e.target.value)}
+                    className="h-8 w-10 rounded border cursor-pointer"
+                  />
+                  <div className="h-8 flex-1 rounded-md border" style={{ backgroundColor: formColor }} />
+                </div>
+              </div>
+              <div>
+                <Label className="text-[11px]">Tipo</Label>
+                <Select value={formPlanned ? 'planned' : 'unplanned'} onValueChange={v => setFormPlanned(v === 'planned')}>
+                  <SelectTrigger className="h-8 text-sm mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="planned">Planejada</SelectItem>
+                    <SelectItem value="unplanned">Não planejada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)} className="text-xs">Cancelar</Button>
+            <Button size="sm" onClick={handleSave} disabled={!formLabel.trim()} className="text-xs">
+              {editingCat ? 'Salvar' : 'Criar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── Structure Tab (existing, refactored) ───
+
+type DialogType = 'site' | 'line' | 'equipment' | 'flow' | 'transport';
+type DialogMode = 'create' | 'edit';
+
+function StructureTab() {
   const [sites, setSites] = useState<Site[]>(mockSites);
   const [lines, setLines] = useState<ProductionLine[]>(mockLines);
   const [equipments, setEquipments] = useState<Equipment[]>(mockEquipments);
   const [flows, setFlows] = useState<ProductionFlow[]>(mockFlows);
 
-  // Expansion state
   const [expandedSite, setExpandedSite] = useState<string | null>('site-1');
   const [expandedLine, setExpandedLine] = useState<string | null>('line-1');
   const [activeTab, setActiveTab] = useState<'equipments' | 'flows' | 'transports'>('equipments');
 
-  // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<'site' | 'line' | 'equipment' | 'flow' | 'transport'>('site');
+  const [dialogType, setDialogType] = useState<DialogType>('site');
   const [dialogMode, setDialogMode] = useState<DialogMode>('create');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [dialogContext, setDialogContext] = useState<string>(''); // parent ID
+  const [dialogContext, setDialogContext] = useState<string>('');
 
-  // Form fields
   const [formName, setFormName] = useState('');
   const [formType, setFormType] = useState('');
   const [formLocation, setFormLocation] = useState('');
   const [formNominal, setFormNominal] = useState('');
   const [formSku, setFormSku] = useState('');
   const [formCapacity, setFormCapacity] = useState('');
+
   const resetForm = () => {
-    setFormName('');
-    setFormType('');
-    setFormLocation('');
-    setFormNominal('');
-    setFormSku('');
-    setFormCapacity('');
+    setFormName(''); setFormType(''); setFormLocation('');
+    setFormNominal(''); setFormSku(''); setFormCapacity('');
   };
 
-  const openCreateDialog = (type: typeof dialogType, contextId = '') => {
-    setDialogType(type);
-    setDialogMode('create');
-    setDialogContext(contextId);
-    setEditingId(null);
-    resetForm();
-    setDialogOpen(true);
+  const openCreateDialog = (type: DialogType, contextId = '') => {
+    setDialogType(type); setDialogMode('create'); setDialogContext(contextId);
+    setEditingId(null); resetForm(); setDialogOpen(true);
   };
 
-  const openEditDialog = (type: typeof dialogType, id: string) => {
-    setDialogType(type);
-    setDialogMode('edit');
-    setEditingId(id);
-
+  const openEditDialog = (type: DialogType, id: string) => {
+    setDialogType(type); setDialogMode('edit'); setEditingId(id);
     if (type === 'site') {
       const s = sites.find(s => s.id === id);
       if (s) { setFormName(s.name); setFormLocation(s.location); }
@@ -119,7 +703,6 @@ export default function Configuracoes() {
           position: newPosition, nominalSpeed: Number(formNominal) || 0,
         };
         setEquipments(prev => [...prev, newEquip]);
-        // Auto-create transport from previous equipment to this one
         if (newPosition > 1) {
           const transportId = `transport-${Date.now()}`;
           const newTransport: Transport = {
@@ -128,8 +711,7 @@ export default function Configuracoes() {
             accumulationPercent: 0, capacity: 50, currentUnits: 0,
           };
           setLines(prev => prev.map(l => l.id === dialogContext
-            ? { ...l, transports: [...l.transports, newTransport] }
-            : l
+            ? { ...l, transports: [...l.transports, newTransport] } : l
           ));
         }
       } else {
@@ -147,7 +729,6 @@ export default function Configuracoes() {
         setFlows(prev => prev.map(f => f.id === id ? { ...f, name: formName, sku: formSku, nominalSpeed: Number(formNominal) || 0 } : f));
       }
     } else if (dialogType === 'transport') {
-      // Only edit mode for transports
       setLines(prev => prev.map(l => l.id === dialogContext
         ? {
           ...l,
@@ -164,19 +745,11 @@ export default function Configuracoes() {
     resetForm();
   };
 
-  const handleDelete = (type: typeof dialogType, id: string) => {
-    if (type === 'site') {
-      setSites(prev => prev.filter(s => s.id !== id));
-      setLines(prev => prev.filter(l => l.siteId !== id));
-    } else if (type === 'line') {
-      setLines(prev => prev.filter(l => l.id !== id));
-      setEquipments(prev => prev.filter(e => e.lineId !== id));
-      setFlows(prev => prev.filter(f => f.lineId !== id));
-    } else if (type === 'equipment') {
-      setEquipments(prev => prev.filter(e => e.id !== id));
-    } else if (type === 'flow') {
-      setFlows(prev => prev.filter(f => f.id !== id));
-    }
+  const handleDelete = (type: DialogType, id: string) => {
+    if (type === 'site') { setSites(prev => prev.filter(s => s.id !== id)); setLines(prev => prev.filter(l => l.siteId !== id)); }
+    else if (type === 'line') { setLines(prev => prev.filter(l => l.id !== id)); setEquipments(prev => prev.filter(e => e.lineId !== id)); setFlows(prev => prev.filter(f => f.lineId !== id)); }
+    else if (type === 'equipment') { setEquipments(prev => prev.filter(e => e.id !== id)); }
+    else if (type === 'flow') { setFlows(prev => prev.filter(f => f.id !== id)); }
   };
 
   const dialogTitles: Record<string, Record<string, string>> = {
@@ -188,23 +761,13 @@ export default function Configuracoes() {
   };
 
   return (
-    <div className="space-y-5 max-w-4xl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-base font-semibold text-foreground flex items-center gap-2">
-            <Settings style={{ width: '1.3rem', height: '1.3rem' }} /> Configurações
-          </h1>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Gerencie sites, linhas, equipamentos, fluxos e categorias de parada.
-          </p>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-end">
         <Button size="sm" onClick={() => openCreateDialog('site')} className="gap-1.5 text-xs">
           <Plus className="h-3.5 w-3.5" /> Novo Site
         </Button>
       </div>
 
-      {/* Sites hierarchy */}
       <div className="space-y-3">
         {sites.map(site => {
           const siteLines = lines.filter(l => l.siteId === site.id);
@@ -212,7 +775,6 @@ export default function Configuracoes() {
 
           return (
             <div key={site.id} className="rounded-lg border bg-card overflow-hidden">
-              {/* Site header */}
               <div
                 className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/30 transition-colors"
                 onClick={() => setExpandedSite(isExpanded ? null : site.id)}
@@ -240,7 +802,6 @@ export default function Configuracoes() {
                 </div>
               </div>
 
-              {/* Lines inside site */}
               {isExpanded && (
                 <div className="border-t">
                   {siteLines.length === 0 && (
@@ -254,7 +815,6 @@ export default function Configuracoes() {
 
                     return (
                       <div key={line.id} className="border-b last:border-b-0">
-                        {/* Line header */}
                         <div
                           className="flex items-center justify-between px-4 pl-8 py-2.5 cursor-pointer hover:bg-muted/20 transition-colors"
                           onClick={() => setExpandedLine(isLineExpanded ? null : line.id)}
@@ -265,7 +825,7 @@ export default function Configuracoes() {
                             <div>
                               <p className="text-[12px] font-medium text-foreground">{line.name}</p>
                               <p className="text-[10px] text-muted-foreground">
-                                {line.type} · {lineEquips.length} equipamentos · {lineFlows.length} fluxos · {line.nominalSpeed} u/h
+                                {line.type} · {lineEquips.length} equip. · {lineFlows.length} fluxos · {line.nominalSpeed} u/h
                               </p>
                             </div>
                           </div>
@@ -279,29 +839,27 @@ export default function Configuracoes() {
                           </div>
                         </div>
 
-                        {/* Line content: equipments + flows */}
                         {isLineExpanded && (
                           <div className="bg-muted/10 border-t">
-                            {/* Tab switcher */}
                             <div className="flex items-center gap-0 px-8 pt-2">
-                              <button
-                                onClick={() => setActiveTab('equipments')}
-                                className={`px-3 py-1.5 text-[11px] font-medium rounded-t-md transition-colors ${activeTab === 'equipments' ? 'bg-card text-foreground border border-b-0' : 'text-muted-foreground hover:text-foreground'}`}
-                              >
-                                <Cog className="h-3 w-3 inline mr-1" /> Equipamentos ({lineEquips.length})
-                              </button>
-                              <button
-                                onClick={() => setActiveTab('flows')}
-                                className={`px-3 py-1.5 text-[11px] font-medium rounded-t-md transition-colors ${activeTab === 'flows' ? 'bg-card text-foreground border border-b-0' : 'text-muted-foreground hover:text-foreground'}`}
-                              >
-                                <GitBranch className="h-3 w-3 inline mr-1" /> Fluxos ({lineFlows.length})
-                              </button>
-                              <button
-                                onClick={() => setActiveTab('transports')}
-                                className={`px-3 py-1.5 text-[11px] font-medium rounded-t-md transition-colors ${activeTab === 'transports' ? 'bg-card text-foreground border border-b-0' : 'text-muted-foreground hover:text-foreground'}`}
-                              >
-                                <ArrowRightLeft className="h-3 w-3 inline mr-1" /> Transportes ({lineTransports.length})
-                              </button>
+                              {(['equipments', 'flows', 'transports'] as const).map(tab => {
+                                const icons = { equipments: Cog, flows: GitBranch, transports: ArrowRightLeft };
+                                const labels = {
+                                  equipments: `Equipamentos (${lineEquips.length})`,
+                                  flows: `Fluxos (${lineFlows.length})`,
+                                  transports: `Transportes (${lineTransports.length})`,
+                                };
+                                const Icon = icons[tab];
+                                return (
+                                  <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`px-3 py-1.5 text-[11px] font-medium rounded-t-md transition-colors ${activeTab === tab ? 'bg-card text-foreground border border-b-0' : 'text-muted-foreground hover:text-foreground'}`}
+                                  >
+                                    <Icon className="h-3 w-3 inline mr-1" /> {labels[tab]}
+                                  </button>
+                                );
+                              })}
                             </div>
 
                             <div className="bg-card mx-8 mb-3 rounded-b-md rounded-tr-md border p-3">
@@ -312,9 +870,7 @@ export default function Configuracoes() {
                                       <Plus className="h-3 w-3" /> Equipamento
                                     </Button>
                                   </div>
-                                  {lineEquips.length === 0 && (
-                                    <p className="text-[11px] text-muted-foreground italic text-center py-2">Nenhum equipamento.</p>
-                                  )}
+                                  {lineEquips.length === 0 && <p className="text-[11px] text-muted-foreground italic text-center py-2">Nenhum equipamento.</p>}
                                   {lineEquips.sort((a, b) => a.position - b.position).map(eq => (
                                     <div key={eq.id} className="flex items-center justify-between px-3 py-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors">
                                       <div className="flex items-center gap-2.5">
@@ -347,9 +903,7 @@ export default function Configuracoes() {
                                       <Plus className="h-3 w-3" /> Fluxo
                                     </Button>
                                   </div>
-                                  {lineFlows.length === 0 && (
-                                    <p className="text-[11px] text-muted-foreground italic text-center py-2">Nenhum fluxo.</p>
-                                  )}
+                                  {lineFlows.length === 0 && <p className="text-[11px] text-muted-foreground italic text-center py-2">Nenhum fluxo.</p>}
                                   {lineFlows.map(flow => {
                                     const flowEquips = equipments.filter(e => flow.equipmentIds.includes(e.id));
                                     return (
@@ -358,7 +912,7 @@ export default function Configuracoes() {
                                           <div>
                                             <p className="text-[11px] font-medium text-foreground">{flow.name}</p>
                                             <p className="text-[10px] text-muted-foreground">
-                                              SKU: <span className="font-mono font-medium text-foreground">{flow.sku}</span> · Nominal: {flow.nominalSpeed} u/h
+                                              SKU: <span className="font-mono font-medium text-foreground">{flow.sku}</span> · {flow.nominalSpeed} u/h
                                             </p>
                                           </div>
                                           <div className="flex items-center gap-2">
@@ -389,39 +943,33 @@ export default function Configuracoes() {
                               {activeTab === 'transports' && (
                                 <div className="space-y-1.5">
                                   {lineTransports.length === 0 && (
-                                    <p className="text-[11px] text-muted-foreground italic text-center py-2">
-                                      Transportes são criados automaticamente ao adicionar equipamentos.
-                                    </p>
+                                    <p className="text-[11px] text-muted-foreground italic text-center py-2">Transportes são criados ao adicionar equipamentos.</p>
                                   )}
-                                  {lineTransports
-                                    .sort((a, b) => a.fromPosition - b.fromPosition)
-                                    .map(transport => {
-                                      const fromEquip = lineEquips.find(e => e.position === transport.fromPosition);
-                                      const toEquip = lineEquips.find(e => e.position === transport.toPosition);
-                                      return (
-                                        <div key={transport.id} className="flex items-center justify-between px-3 py-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors">
-                                          <div className="flex items-center gap-2.5">
-                                            <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground" />
-                                            <div>
-                                              <p className="text-[11px] font-medium text-foreground">
-                                                {fromEquip?.name ?? `Pos ${transport.fromPosition}`}
-                                                <span className="text-muted-foreground mx-1">→</span>
-                                                {toEquip?.name ?? `Pos ${transport.toPosition}`}
-                                              </p>
-                                              <p className="text-[10px] text-muted-foreground capitalize">{transport.type}</p>
-                                            </div>
-                                          </div>
-                                          <div className="flex items-center gap-2">
-                                            <Badge variant="secondary" className="text-[10px] gap-1">
-                                              Cap: {transport.capacity} un
-                                            </Badge>
-                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog('transport', transport.id)}>
-                                              <Pencil className="h-3 w-3 text-muted-foreground" />
-                                            </Button>
+                                  {lineTransports.sort((a, b) => a.fromPosition - b.fromPosition).map(transport => {
+                                    const fromEquip = lineEquips.find(e => e.position === transport.fromPosition);
+                                    const toEquip = lineEquips.find(e => e.position === transport.toPosition);
+                                    return (
+                                      <div key={transport.id} className="flex items-center justify-between px-3 py-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors">
+                                        <div className="flex items-center gap-2.5">
+                                          <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                                          <div>
+                                            <p className="text-[11px] font-medium text-foreground">
+                                              {fromEquip?.name ?? `Pos ${transport.fromPosition}`}
+                                              <span className="text-muted-foreground mx-1">→</span>
+                                              {toEquip?.name ?? `Pos ${transport.toPosition}`}
+                                            </p>
+                                            <p className="text-[10px] text-muted-foreground capitalize">{transport.type}</p>
                                           </div>
                                         </div>
-                                      );
-                                    })}
+                                        <div className="flex items-center gap-2">
+                                          <Badge variant="secondary" className="text-[10px] gap-1">Cap: {transport.capacity} un</Badge>
+                                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog('transport', transport.id)}>
+                                            <Pencil className="h-3 w-3 text-muted-foreground" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               )}
                             </div>
@@ -436,26 +984,6 @@ export default function Configuracoes() {
           );
         })}
       </div>
-
-      {/* Stop categories (read-only) */}
-      <div className="rounded-lg border bg-card">
-        <div className="px-4 py-3 border-b">
-          <p className="text-[12px] font-medium text-foreground flex items-center gap-1.5">
-            <Tag className="h-3.5 w-3.5 text-muted-foreground" /> Categorias de Parada
-          </p>
-        </div>
-        <div className="px-4 py-3 flex flex-wrap gap-1.5">
-          {STOP_CATEGORIES.map((cat) => (
-            <Badge key={cat.id} variant="outline" style={{ borderColor: cat.color, color: cat.color }} className="text-[10px]">
-              {cat.label}
-            </Badge>
-          ))}
-        </div>
-      </div>
-
-      <p className="text-[11px] text-muted-foreground">
-        Dados armazenados localmente. Ative o backend para persistência.
-      </p>
 
       {/* CRUD Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -472,40 +1000,33 @@ export default function Configuracoes() {
                 <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Nome" className="h-8 text-sm mt-1" />
               </div>
             )}
-
             {dialogType === 'site' && (
               <div>
                 <Label className="text-[11px]">Localização</Label>
                 <Input value={formLocation} onChange={e => setFormLocation(e.target.value)} placeholder="Cidade, Estado" className="h-8 text-sm mt-1" />
               </div>
             )}
-
             {(dialogType === 'line' || dialogType === 'equipment' || dialogType === 'transport') && (
               <div>
                 <Label className="text-[11px]">Tipo</Label>
-                <Input
-                  value={formType}
-                  onChange={e => setFormType(e.target.value)}
+                <Input value={formType} onChange={e => setFormType(e.target.value)}
                   placeholder={dialogType === 'transport' ? 'conveyor, buffer, gravity' : 'Ex: Envase, Processor'}
                   className="h-8 text-sm mt-1"
                 />
               </div>
             )}
-
             {(dialogType === 'line' || dialogType === 'equipment' || dialogType === 'flow') && (
               <div>
                 <Label className="text-[11px]">Velocidade Nominal (u/h)</Label>
                 <Input type="number" value={formNominal} onChange={e => setFormNominal(e.target.value)} placeholder="500" className="h-8 text-sm mt-1" />
               </div>
             )}
-
             {dialogType === 'flow' && (
               <div>
                 <Label className="text-[11px]">SKU / Código do Produto</Label>
                 <Input value={formSku} onChange={e => setFormSku(e.target.value)} placeholder="Ex: SKU-204" className="h-8 text-sm mt-1 font-mono" />
               </div>
             )}
-
             {dialogType === 'transport' && (
               <div>
                 <Label className="text-[11px]">Capacidade (unidades)</Label>
@@ -514,9 +1035,7 @@ export default function Configuracoes() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)} className="text-xs">
-              Cancelar
-            </Button>
+            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)} className="text-xs">Cancelar</Button>
             <Button size="sm" onClick={handleSave} disabled={dialogType !== 'transport' && !formName.trim()} className="text-xs">
               {dialogMode === 'create' ? 'Criar' : 'Salvar'}
             </Button>
