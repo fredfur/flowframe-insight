@@ -18,11 +18,11 @@ export interface Equipment {
 
 export interface ProductionFlow {
   id: string;
-  name: string;
+  name: string; // product name
+  sku: string; // product code
   lineId: string;
-  equipmentIds: string[];
-  normalizer: string;
-  nominalSpeed: number;
+  equipmentIds: string[]; // rarely changes per product
+  nominalSpeed: number; // line speed for this product
 }
 
 export interface Machine {
