@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { mockLines, mockDLIData } from '@/data/mockData';
+import { mockLines, mockDLIData, mockTimelines } from '@/data/mockData';
 import { useLineStore } from '@/stores/lineStore';
 import { Machine } from '@/types/production';
 import { MachineNode } from '@/components/production/MachineNode';
 import { FlowConnector } from '@/components/production/FlowConnector';
 import { MachineDetailPanel } from '@/components/production/MachineDetailPanel';
 import { LineMetricsBar } from '@/components/production/LineMetricsBar';
+import { LineTimeline } from '@/components/production/LineTimeline';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
 
@@ -42,6 +43,10 @@ export default function LineLive() {
 
         <LineMetricsBar line={line} />
 
+        <LineTimeline
+          machines={sortedMachines}
+          timelines={mockTimelines[line.id] ?? []}
+        />
         {/* Flow */}
         <div>
           <div className="flex items-center justify-between mb-3">
