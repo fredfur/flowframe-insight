@@ -17,12 +17,12 @@ export function AppLayout() {
       <div className={`min-h-screen flex w-full ${theme}`}>
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center justify-between border-b border-border bg-card px-4 shrink-0">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger />
-              <div className="h-6 w-px bg-border" />
+          <header className="h-11 flex items-center justify-between border-b px-3 bg-background shrink-0">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="h-7 w-7 text-muted-foreground hover:text-foreground" />
+              <div className="h-4 w-px bg-border" />
               <Select value={selectedLineId} onValueChange={setSelectedLineId}>
-                <SelectTrigger className="w-[220px] h-8 text-xs bg-background border-border">
+                <SelectTrigger className="w-[200px] h-7 text-xs border-none bg-transparent shadow-none hover:bg-accent">
                   <SelectValue placeholder="Selecionar linha" />
                 </SelectTrigger>
                 <SelectContent>
@@ -34,18 +34,17 @@ export function AppLayout() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8">
-                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
-                <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                <span>LIVE</span>
-                <span>{new Date().toLocaleDateString('pt-BR')}</span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mr-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-status-running animate-pulse" />
+                <span className="text-[11px]">Live</span>
               </div>
+              <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-7 w-7 text-muted-foreground hover:text-foreground">
+                {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+              </Button>
             </div>
           </header>
-          <main className="flex-1 overflow-auto p-4 md:p-6 bg-background">
+          <main className="flex-1 overflow-auto p-5">
             <Outlet />
           </main>
         </div>
