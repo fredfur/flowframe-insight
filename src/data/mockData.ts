@@ -16,7 +16,7 @@ const createMachines = (lineId: string): Machine[] => [
   },
   {
     id: `${lineId}-m3`, name: 'Inspeção Visual', type: 'Inspection',
-    lineId, position: 3, x: 480, y: 200, status: 'stopped',
+    lineId, position: 3, x: 480, y: 200, status: 'fault',
     oee: { availability: 70, performance: 92, quality: 100, oee: 64.4 },
     throughput: 0, nominalSpeed: 500,
   },
@@ -175,7 +175,7 @@ export const mockTimelines: Record<string, MachineTimeline[]> = {
     {
       machineId: 'line-1-m3', machineName: 'Inspeção Visual',
       segments: makeSegments([
-        ['running', 360, 510], ['fault', 510, 560], ['stopped', 560, 600],
+        ['running', 360, 510], ['fault', 510, 560], ['fault', 560, 600],
         ['running', 600, 750], ['disconnected', 750, 780], ['running', 780, 840],
       ]),
     },

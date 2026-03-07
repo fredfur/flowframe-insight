@@ -6,9 +6,9 @@ interface LineMetricsBarProps {
 
 export function LineMetricsBar({ line }: LineMetricsBarProps) {
   const runningCount = line.machines.filter(m => m.status === 'running').length;
-  const stoppedCount = line.machines.filter(m => ['stopped', 'fault'].includes(m.status)).length;
+  const stoppedCount = line.machines.filter(m => ['fault', 'shortage', 'accumulation'].includes(m.status)).length;
   const setupCount = line.machines.filter(m => m.status === 'setup').length;
-  const otherCount = line.machines.filter(m => ['shortage', 'accumulation', 'scheduled', 'disconnected'].includes(m.status)).length;
+  const otherCount = line.machines.filter(m => ['scheduled', 'disconnected'].includes(m.status)).length;
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
