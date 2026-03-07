@@ -6,15 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Moon, Sun } from 'lucide-react';
 import { mockLines } from '@/data/mockData';
 import { useLineStore } from '@/stores/lineStore';
-import { useThemeStore } from '@/stores/themeStore';
+import { useTheme } from 'next-themes';
 
 export function AppLayout() {
   const { selectedLineId, setSelectedLineId } = useLineStore();
-  const { theme, toggleTheme } = useThemeStore();
+  const { theme, setTheme } = useTheme();
 
   return (
     <SidebarProvider>
-      <div className={`min-h-screen flex w-full ${theme}`}>
+      <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-12 flex items-center justify-between border-b px-4 bg-background shrink-0">
@@ -22,7 +22,7 @@ export function AppLayout() {
               <SidebarTrigger className="h-7 w-7 text-muted-foreground hover:text-foreground" />
               <div className="h-4 w-px bg-border" />
               <Select value={selectedLineId} onValueChange={setSelectedLineId}>
-                <SelectTrigger className="w-[200px] h-8 text-sm border-border">
+                <SelectTrigger className="w-[200px] h-8 text-sm">
                   <SelectValue placeholder="Selecionar linha" />
                 </SelectTrigger>
                 <SelectContent>
@@ -39,7 +39,12 @@ export function AppLayout() {
                 <span className="h-2 w-2 rounded-full bg-status-running animate-pulse" />
                 <span>Live</span>
               </div>
-              <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 text-muted-foreground hover:text-foreground">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              >
                 {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
             </div>
