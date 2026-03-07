@@ -39,6 +39,20 @@ export interface Machine {
   nominalSpeed: number;
 }
 
+export type TransportAccumulationLevel = 'empty' | 'low' | 'normal' | 'high' | 'critical';
+
+export interface Transport {
+  id: string;
+  fromPosition: number;
+  toPosition: number;
+  lineId: string;
+  type: 'conveyor' | 'buffer' | 'gravity';
+  accumulation: TransportAccumulationLevel;
+  accumulationPercent: number; // 0-100
+  capacity: number; // max units
+  currentUnits: number;
+}
+
 export interface OEEMetrics {
   availability: number;
   performance: number;
@@ -53,6 +67,7 @@ export interface ProductionLine {
   siteId: string;
   nominalSpeed: number;
   machines: Machine[];
+  transports: Transport[];
   oee: OEEMetrics;
   throughput: number;
 }
