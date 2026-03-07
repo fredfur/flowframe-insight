@@ -73,6 +73,7 @@ interface OperatorAssignment {
   operatorId: string;
   equipmentIds: string[];
   lineId: string;
+  shiftIds: string[];
 }
 
 // ─── Mock data ───
@@ -108,7 +109,7 @@ const MOCK_SHIFTS: Shift[] = [
 ];
 
 const MOCK_ASSIGNMENTS: OperatorAssignment[] = [
-  { id: 'a1', operatorId: 'u3', equipmentIds: ['eq-1', 'eq-2'], lineId: 'line-1' },
+  { id: 'a1', operatorId: 'u3', equipmentIds: ['eq-1', 'eq-2'], lineId: 'line-1', shiftIds: ['sh1'] },
 ];
 
 const roleLabels: Record<UserRecord['role'], string> = {
@@ -715,25 +716,26 @@ function AssignmentsTab() {
   const [formOperatorId, setFormOperatorId] = useState('');
   const [formLineId, setFormLineId] = useState(mockLines[0]?.id || '');
   const [formEquipmentIds, setFormEquipmentIds] = useState<string[]>([]);
+  const [formShiftIds, setFormShiftIds] = useState<string[]>([]);
 
   const operators = MOCK_USERS.filter(u => u.role === 'operator' && u.status === 'active');
 
   const openCreate = () => {
     setEditingAssignment(null);
-    setFormOperatorId(''); setFormLineId(mockLines[0]?.id || ''); setFormEquipmentIds([]);
+    setFormOperatorId(''); setFormLineId(mockLines[0]?.id || ''); setFormEquipmentIds([]); setFormShiftIds([]);
     setDialogOpen(true);
   };
 
   const openEdit = (a: OperatorAssignment) => {
     setEditingAssignment(a);
-    setFormOperatorId(a.operatorId); setFormLineId(a.lineId); setFormEquipmentIds(a.equipmentIds);
+    setFormOperatorId(a.operatorId); setFormLineId(a.lineId); setFormEquipmentIds(a.equipmentIds); setFormShiftIds(a.shiftIds);
     setDialogOpen(true);
   };
 
   const handleSave = () => {
     if (editingAssignment) {
       setAssignments(prev => prev.map(a => a.id === editingAssignment.id
-        ? { ...a, operatorId: formOperatorId, lineId: formLineId, equipmentIds: formEquipmentIds }
+        ? { ...a, operatorId: formOperatorId, lineId: formLineId, equipmentIds: formEquipmentIds, shiftIds: formShiftIds }
         : a
       ));
     } else {
@@ -742,6 +744,7 @@ function AssignmentsTab() {
         operatorId: formOperatorId,
         lineId: formLineId,
         equipmentIds: formEquipmentIds,
+        shiftIds: formShiftIds,
       }]);
     }
     setDialogOpen(false);
@@ -758,6 +761,10 @@ function AssignmentsTab() {
   const selectAllEquipments = () => {
     const lineEquips = mockEquipments.filter(e => e.lineId === formLineId);
     setFormEquipmentIds(lineEquips.map(e => e.id));
+  };
+
+  const toggleShift = (shiftId: string) => {
+    setFormShiftIds(prev => prev.includes(shiftId) ? prev.filter(s => s !== shiftId) : [...prev, shiftId]);
   };
 
   const lineEquipmentsForForm = mockEquipments.filter(e => e.lineId === formLineId);
@@ -780,6 +787,7 @@ function AssignmentsTab() {
               <TableHead className="text-[11px]">Operador</TableHead>
               <TableHead className="text-[11px]">Linha</TableHead>
               <TableHead className="text-[11px]">Equipamentos</TableHead>
+              <TableHead className="text-[11px]">Turnos</TableHead>
               <TableHead className="text-[11px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -816,6 +824,15 @@ function AssignmentsTab() {
                       {a.equipmentIds.length === 0 && <span className="text-[10px] text-muted-foreground">—</span>}
                     </div>
                   </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1 flex-wrap">
+                      {a.shiftIds.map(sid => {
+                        const shift = MOCK_SHIFTS.find(s => s.id === sid);
+                        return <Badge key={sid} variant="secondary" className="text-[9px]">{shift?.name ?? sid}</Badge>;
+                      })}
+                      {a.shiftIds.length === 0 && <span className="text-[10px] text-muted-foreground">—</span>}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(a)}>
@@ -831,7 +848,7 @@ function AssignmentsTab() {
             })}
             {assignments.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-xs text-muted-foreground py-6">
+                <TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-6">
                   Nenhum vínculo cadastrado.
                 </TableCell>
               </TableRow>
@@ -904,10 +921,27 @@ function AssignmentsTab() {
                 ))}
               </div>
             </div>
+            <div>
+              <Label className="text-[11px]">Turnos</Label>
+              <div className="flex flex-wrap gap-2 mt-1.5 p-2.5 rounded-md border bg-muted/20">
+                {MOCK_SHIFTS.map(shift => (
+                  <label key={shift.id} className="flex items-center gap-1.5 cursor-pointer">
+                    <Checkbox
+                      checked={formShiftIds.includes(shift.id)}
+                      onCheckedChange={() => toggleShift(shift.id)}
+                      className="h-3.5 w-3.5"
+                    />
+                    <span className="text-[11px] text-foreground">{shift.name}</span>
+                    <span className="text-[10px] text-muted-foreground">({shift.startTime}–{shift.endTime})</span>
+                  </label>
+                ))}
+                {MOCK_SHIFTS.length === 0 && <span className="text-[10px] text-muted-foreground">Nenhum turno cadastrado</span>}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)} className="text-xs">Cancelar</Button>
-            <Button size="sm" onClick={handleSave} disabled={!formOperatorId || formEquipmentIds.length === 0} className="text-xs">
+            <Button size="sm" onClick={handleSave} disabled={!formOperatorId || formEquipmentIds.length === 0 || formShiftIds.length === 0} className="text-xs">
               {editingAssignment ? 'Salvar' : 'Criar'}
             </Button>
           </DialogFooter>
