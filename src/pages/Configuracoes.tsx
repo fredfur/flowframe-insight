@@ -385,6 +385,45 @@ export default function Configuracoes() {
                                   })}
                                 </div>
                               )}
+
+                              {activeTab === 'transports' && (
+                                <div className="space-y-1.5">
+                                  {lineTransports.length === 0 && (
+                                    <p className="text-[11px] text-muted-foreground italic text-center py-2">
+                                      Transportes são criados automaticamente ao adicionar equipamentos.
+                                    </p>
+                                  )}
+                                  {lineTransports
+                                    .sort((a, b) => a.fromPosition - b.fromPosition)
+                                    .map(transport => {
+                                      const fromEquip = lineEquips.find(e => e.position === transport.fromPosition);
+                                      const toEquip = lineEquips.find(e => e.position === transport.toPosition);
+                                      return (
+                                        <div key={transport.id} className="flex items-center justify-between px-3 py-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors">
+                                          <div className="flex items-center gap-2.5">
+                                            <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                                            <div>
+                                              <p className="text-[11px] font-medium text-foreground">
+                                                {fromEquip?.name ?? `Pos ${transport.fromPosition}`}
+                                                <span className="text-muted-foreground mx-1">→</span>
+                                                {toEquip?.name ?? `Pos ${transport.toPosition}`}
+                                              </p>
+                                              <p className="text-[10px] text-muted-foreground capitalize">{transport.type}</p>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <Badge variant="secondary" className="text-[10px] gap-1">
+                                              Cap: {transport.capacity} un
+                                            </Badge>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog('transport', transport.id)}>
+                                              <Pencil className="h-3 w-3 text-muted-foreground" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
