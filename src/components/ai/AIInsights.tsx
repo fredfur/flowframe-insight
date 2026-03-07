@@ -136,7 +136,7 @@ export function AIInsightChip({
         )}
       >
         <Icon className="h-2.5 w-2.5" />
-        <span className="whitespace-nowrap">{insight.title}</span>
+        <span className="truncate max-w-[140px]">{insight.title}</span>
         {insight.metric && (
           <span className="font-semibold tabular-nums">{insight.metric}</span>
         )}
@@ -167,7 +167,7 @@ export function AIInsightChips({
   if (insights.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none min-w-0 shrink">
       <div className="flex h-4 w-4 items-center justify-center rounded bg-primary/10 shrink-0">
         <Sparkles className="h-2.5 w-2.5 text-primary" />
       </div>
