@@ -245,8 +245,8 @@ export function LineTimeline({ machines, timelines, speedSamples, nominalSpeed, 
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging || dragStart === null) return;
-    // Show selection overlay handled by dragStart + current position
-  }, [isDragging, dragStart]);
+    setDragCurrent(xToMin(e.clientX));
+  }, [isDragging, dragStart, xToMin]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (!isDragging || dragStart === null) return;
