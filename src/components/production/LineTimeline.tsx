@@ -254,12 +254,12 @@ export function LineTimeline({ machines, timelines, speedSamples, nominalSpeed, 
     setIsDragging(false);
     const minVal = Math.min(dragStart, dragEnd);
     const maxVal = Math.max(dragStart, dragEnd);
-    // Only zoom if selection is at least 10 minutes
     if (maxVal - minVal >= 10) {
       setZoomStart(minVal);
       setZoomEnd(maxVal);
     }
     setDragStart(null);
+    setDragCurrent(null);
   }, [isDragging, dragStart, xToMin]);
 
   // Zoom in/out buttons
