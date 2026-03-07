@@ -921,10 +921,27 @@ function AssignmentsTab() {
                 ))}
               </div>
             </div>
+            <div>
+              <Label className="text-[11px]">Turnos</Label>
+              <div className="flex flex-wrap gap-2 mt-1.5 p-2.5 rounded-md border bg-muted/20">
+                {MOCK_SHIFTS.map(shift => (
+                  <label key={shift.id} className="flex items-center gap-1.5 cursor-pointer">
+                    <Checkbox
+                      checked={formShiftIds.includes(shift.id)}
+                      onCheckedChange={() => toggleShift(shift.id)}
+                      className="h-3.5 w-3.5"
+                    />
+                    <span className="text-[11px] text-foreground">{shift.name}</span>
+                    <span className="text-[10px] text-muted-foreground">({shift.startTime}–{shift.endTime})</span>
+                  </label>
+                ))}
+                {MOCK_SHIFTS.length === 0 && <span className="text-[10px] text-muted-foreground">Nenhum turno cadastrado</span>}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)} className="text-xs">Cancelar</Button>
-            <Button size="sm" onClick={handleSave} disabled={!formOperatorId || formEquipmentIds.length === 0} className="text-xs">
+            <Button size="sm" onClick={handleSave} disabled={!formOperatorId || formEquipmentIds.length === 0 || formShiftIds.length === 0} className="text-xs">
               {editingAssignment ? 'Salvar' : 'Criar'}
             </Button>
           </DialogFooter>
