@@ -184,6 +184,7 @@ export default function Configuracoes() {
     line: { create: 'Nova Linha', edit: 'Editar Linha' },
     equipment: { create: 'Novo Equipamento', edit: 'Editar Equipamento' },
     flow: { create: 'Novo Fluxo', edit: 'Editar Fluxo' },
+    transport: { create: 'Novo Transporte', edit: 'Editar Transporte' },
   };
 
   return (
