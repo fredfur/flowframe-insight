@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { mockLines, mockDLIData } from '@/data/mockData';
+import { mockLines } from '@/data/mockData';
 import { useLineStore } from '@/stores/lineStore';
 import { STOP_CATEGORIES, StopCategory } from '@/types/production';
 import { Badge } from '@/components/ui/badge';
@@ -12,14 +12,22 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from '@/components/ui/sheet';
+import {
   Clock, Pencil, Save, TrendingUp, TrendingDown, AlertTriangle, Package, Target,
+  ChevronLeft, ChevronRight, CalendarDays, ChevronDown, Plus, Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ReferenceLine, Cell } from 'recharts';
+import { format, addDays, subDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 
 interface HourlyRecord {
-  hour: string;        // "06:00"
+  hour: string;
   produced: number;
   target: number;
   scrap: number;
@@ -74,7 +82,6 @@ function generateMockHourlyData(lineId: string): HourlyRecord[] {
         durationMin: 0,
       });
     }
-
     records.push({ hour, produced, target, scrap, stops });
   }
   return records;
@@ -88,13 +95,17 @@ export default function HourlyProduction() {
   const { selectedLineId } = useLineStore();
   const line = mockLines.find(l => l.id === selectedLineId) ?? mockLines[0];
 
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [records, setRecords] = useState<HourlyRecord[]>(() => generateMockHourlyData(selectedLineId));
-  const [selectedHour, setSelectedHour] = useState<string | null>(null);
+  const [expandedHour, setExpandedHour] = useState<string | null>(null);
   const [editDialog, setEditDialog] = useState(false);
   const [eventDialog, setEventDialog] = useState(false);
   const [editingRecord, setEditingRecord] = useState<HourlyRecord | null>(null);
   const [editingEvent, setEditingEvent] = useState<HourlyEvent | null>(null);
   const [editingEventHour, setEditingEventHour] = useState<string>('');
+
+  // Detail sheet
+  const [detailRecord, setDetailRecord] = useState<HourlyRecord | null>(null);
 
   // Edit record form
   const [formProduced, setFormProduced] = useState('');
@@ -122,9 +133,7 @@ export default function HourlyProduction() {
   const saveRecord = () => {
     if (!editingRecord) return;
     setRecords(prev => prev.map(r => r.hour === editingRecord.hour ? {
-      ...r,
-      produced: Number(formProduced) || 0,
-      scrap: Number(formScrap) || 0,
+      ...r, produced: Number(formProduced) || 0, scrap: Number(formScrap) || 0,
     } : r));
     setEditDialog(false);
   };
@@ -180,10 +189,37 @@ export default function HourlyProduction() {
 
   return (
     <div className="flex flex-col gap-4 overflow-y-auto">
-      {/* Header */}
-      <div>
-        <h1 className="text-lg font-semibold text-foreground">Produção Hora a Hora</h1>
-        <p className="text-sm text-muted-foreground">{line.name} · {new Date().toLocaleDateString('pt-BR')}</p>
+      {/* Header with date navigation */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-lg font-semibold text-foreground">Produção Hora a Hora</h1>
+          <p className="text-sm text-muted-foreground">{line.name}</p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setSelectedDate(d => subDays(d, 1))}>
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-medium min-w-[140px]">
+                <CalendarDays className="h-3.5 w-3.5" />
+                {format(selectedDate, "dd 'de' MMM, yyyy", { locale: ptBR })}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(d) => d && setSelectedDate(d)}
+                locale={ptBR}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setSelectedDate(d => addDays(d, 1))}>
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
       {/* Summary */}
@@ -219,100 +255,129 @@ export default function HourlyProduction() {
 
       {/* Hourly table */}
       <div className="rounded-lg border bg-card overflow-hidden">
-        <div className="grid grid-cols-[70px_1fr_1fr_80px_80px_auto] gap-2 px-4 py-2 border-b bg-muted/30 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+        {/* Table header */}
+        <div className="grid grid-cols-[72px_1fr_100px_80px_72px_80px] gap-0 px-4 py-2.5 border-b bg-muted/40 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
           <span>Hora</span>
-          <span>Produzido</span>
-          <span>Meta</span>
-          <span>Refugo</span>
-          <span>%</span>
-          <span className="text-right">Eventos</span>
+          <span>Produção</span>
+          <span className="text-right">Meta</span>
+          <span className="text-right">Refugo</span>
+          <span className="text-right">%</span>
+          <span className="text-right">Ações</span>
         </div>
 
         {records.map(record => {
           const pct = record.target > 0 ? (record.produced / record.target) * 100 : 0;
-          const isExpanded = selectedHour === record.hour;
+          const isExpanded = expandedHour === record.hour;
           const hasEvents = record.stops.length > 0;
 
           return (
             <div key={record.hour} className="border-b last:border-b-0">
               <div
                 className={cn(
-                  'grid grid-cols-[70px_1fr_1fr_80px_80px_auto] gap-2 px-4 py-2.5 items-center cursor-pointer transition-colors',
+                  'grid grid-cols-[72px_1fr_100px_80px_72px_80px] gap-0 px-4 py-3 items-center cursor-pointer transition-colors',
                   isExpanded ? 'bg-primary/5' : 'hover:bg-muted/20',
                 )}
-                onClick={() => setSelectedHour(isExpanded ? null : record.hour)}
+                onClick={() => setExpandedHour(isExpanded ? null : record.hour)}
               >
-                <span className="text-sm font-medium tabular-nums text-foreground">{record.hour}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm tabular-nums text-foreground">{record.produced.toLocaleString('pt-BR')}</span>
-                  <div className="flex-1 max-w-[100px] h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                {/* Hour */}
+                <span className="text-sm font-semibold tabular-nums text-foreground">{record.hour}</span>
+
+                {/* Production + bar */}
+                <div className="flex items-center gap-3 pr-4">
+                  <span className="text-sm tabular-nums text-foreground min-w-[50px]">{record.produced.toLocaleString('pt-BR')}</span>
+                  <div className="flex-1 h-2 rounded-full bg-muted/40 overflow-hidden">
                     <div
                       className={cn(
-                        'h-full rounded-full',
+                        'h-full rounded-full transition-all',
                         pct >= 90 ? 'bg-status-running' : pct >= 70 ? 'bg-status-accumulation' : 'bg-status-fault',
                       )}
                       style={{ width: `${Math.min(100, pct)}%` }}
                     />
                   </div>
                 </div>
-                <span className="text-sm tabular-nums text-muted-foreground">{record.target.toLocaleString('pt-BR')}</span>
-                <span className={cn('text-sm tabular-nums', record.scrap > 0 ? 'text-status-fault' : 'text-muted-foreground')}>
+
+                {/* Meta */}
+                <span className="text-sm tabular-nums text-muted-foreground text-right">{record.target.toLocaleString('pt-BR')}</span>
+
+                {/* Refugo */}
+                <span className={cn('text-sm tabular-nums text-right', record.scrap > 0 ? 'text-status-fault' : 'text-muted-foreground')}>
                   {record.scrap}
                 </span>
+
+                {/* % */}
                 <span className={cn(
-                  'text-sm font-medium tabular-nums',
+                  'text-sm font-semibold tabular-nums text-right',
                   pct >= 90 ? 'text-oee-excellent' : pct >= 70 ? 'text-oee-warning' : 'text-oee-critical',
                 )}>
                   {pct.toFixed(0)}%
                 </span>
+
+                {/* Actions */}
                 <div className="flex items-center gap-1 justify-end">
                   {hasEvents && (
-                    <Badge variant="secondary" className="text-[9px] gap-0.5">
+                    <Badge variant="secondary" className="text-[9px] gap-0.5 h-5">
                       <AlertTriangle className="h-2.5 w-2.5" /> {record.stops.length}
                     </Badge>
                   )}
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={e => { e.stopPropagation(); openEditRecord(record); }}>
-                    <Pencil className="h-3 w-3 text-muted-foreground" />
-                  </Button>
+                  <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform', isExpanded && 'rotate-180')} />
                 </div>
               </div>
 
               {/* Expanded events */}
               {isExpanded && (
-                <div className="px-4 pb-3 pt-1 bg-muted/10 space-y-1.5">
+                <div className="px-4 pb-3 pt-1 bg-muted/10 border-t border-dashed space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Eventos — {record.hour}</p>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="sm" className="h-6 text-[10px] gap-1" onClick={(e) => { e.stopPropagation(); openEditRecord(record); }}>
+                        <Pencil className="h-2.5 w-2.5" /> Editar Produção
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1" onClick={() => openCreateEvent(record.hour)}>
+                        <Plus className="h-2.5 w-2.5" /> Evento
+                      </Button>
+                    </div>
+                  </div>
+
                   {record.stops.length === 0 && (
-                    <p className="text-[11px] text-muted-foreground italic">Nenhum evento registrado nesta hora.</p>
+                    <p className="text-[11px] text-muted-foreground italic py-2 text-center">Nenhum evento registrado nesta hora.</p>
                   )}
+
                   {record.stops.map(ev => {
                     const cat = ev.category ? STOP_CATEGORIES.find(c => c.id === ev.category) : null;
                     return (
-                      <div key={ev.id} className="flex items-center justify-between px-3 py-2 rounded-md bg-card border">
-                        <div className="flex items-center gap-2 min-w-0">
-                          {ev.type === 'stop' && <AlertTriangle className="h-3 w-3 text-status-fault shrink-0" />}
-                          {ev.type === 'quality' && <TrendingDown className="h-3 w-3 text-status-accumulation shrink-0" />}
-                          {ev.type === 'observation' && <Clock className="h-3 w-3 text-muted-foreground shrink-0" />}
+                      <div key={ev.id} className="flex items-center justify-between px-3 py-2.5 rounded-md bg-card border">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={cn(
+                            'h-7 w-7 rounded-md flex items-center justify-center shrink-0',
+                            ev.type === 'stop' ? 'bg-destructive/10' : ev.type === 'quality' ? 'bg-status-accumulation/10' : 'bg-muted',
+                          )}>
+                            {ev.type === 'stop' && <AlertTriangle className="h-3.5 w-3.5 text-destructive" />}
+                            {ev.type === 'quality' && <TrendingDown className="h-3.5 w-3.5 text-status-accumulation" />}
+                            {ev.type === 'observation' && <Clock className="h-3.5 w-3.5 text-muted-foreground" />}
+                          </div>
                           <div className="min-w-0">
-                            <p className="text-[11px] font-medium text-foreground truncate">{ev.description}</p>
-                            <div className="flex items-center gap-2">
-                              {cat && <span className="text-[9px]" style={{ color: cat.color }}>{cat.label}</span>}
-                              {ev.durationMin > 0 && <span className="text-[9px] text-muted-foreground">{ev.durationMin} min</span>}
+                            <p className="text-xs font-medium text-foreground truncate">{ev.description}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {cat && (
+                                <Badge variant="outline" className="text-[9px] h-4 px-1.5" style={{ borderColor: cat.color, color: cat.color }}>
+                                  {cat.label}
+                                </Badge>
+                              )}
+                              {ev.durationMin > 0 && <span className="text-[10px] text-muted-foreground">{ev.durationMin} min</span>}
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-0.5 shrink-0">
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditEvent(record.hour, ev)}>
-                            <Pencil className="h-2.5 w-2.5 text-muted-foreground" />
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditEvent(record.hour, ev)}>
+                            <Pencil className="h-3 w-3 text-muted-foreground" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteEvent(record.hour, ev.id)}>
-                            <span className="text-destructive text-xs">×</span>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteEvent(record.hour, ev.id)}>
+                            <Trash2 className="h-3 w-3 text-destructive" />
                           </Button>
                         </div>
                       </div>
                     );
                   })}
-                  <Button variant="outline" size="sm" className="w-full text-[10px] h-7 gap-1 mt-1" onClick={() => openCreateEvent(record.hour)}>
-                    + Adicionar Evento
-                  </Button>
                 </div>
               )}
             </div>
@@ -355,9 +420,7 @@ export default function HourlyProduction() {
             <div>
               <Label className="text-[11px]">Tipo</Label>
               <Select value={evType} onValueChange={v => setEvType(v as any)}>
-                <SelectTrigger className="h-8 text-sm mt-1">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="h-8 text-sm mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="stop">Parada</SelectItem>
                   <SelectItem value="quality">Qualidade</SelectItem>
@@ -369,9 +432,7 @@ export default function HourlyProduction() {
               <div>
                 <Label className="text-[11px]">Categoria</Label>
                 <Select value={evCategory} onValueChange={setEvCategory}>
-                  <SelectTrigger className="h-8 text-sm mt-1">
-                    <SelectValue placeholder="Selecionar categoria" />
-                  </SelectTrigger>
+                  <SelectTrigger className="h-8 text-sm mt-1"><SelectValue placeholder="Selecionar categoria" /></SelectTrigger>
                   <SelectContent>
                     {STOP_CATEGORIES.map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>

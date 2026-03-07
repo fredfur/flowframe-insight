@@ -12,8 +12,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from '@/components/ui/sheet';
+import {
   AlertTriangle, Plus, Clock, Filter, Search, Pencil, StopCircle,
-  Timer, BarChart3, ChevronDown, ChevronUp, X,
+  Timer, BarChart3, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -43,7 +46,7 @@ export default function Stops() {
   const [formEnd, setFormEnd] = useState('');
   const [formNotes, setFormNotes] = useState('');
 
-  // Detail panel
+  // Detail sheet
   const [selectedStop, setSelectedStop] = useState<Stop | null>(null);
 
   const openCreate = () => {
@@ -76,8 +79,8 @@ export default function Stops() {
       : null;
 
     if (editingStop) {
-      setStops(prev => prev.map(s => s.id === editingStop.id ? {
-        ...s,
+      const updated = {
+        ...editingStop,
         machineId: formMachine,
         machineName: machine.name,
         category: formCategory as StopCategory,
@@ -85,19 +88,9 @@ export default function Stops() {
         endTime,
         duration,
         notes: formNotes,
-      } : s));
-      if (selectedStop?.id === editingStop.id) {
-        setSelectedStop(prev => prev ? {
-          ...prev,
-          machineId: formMachine,
-          machineName: machine.name,
-          category: formCategory as StopCategory,
-          startTime: formStart,
-          endTime,
-          duration,
-          notes: formNotes,
-        } : null);
-      }
+      };
+      setStops(prev => prev.map(s => s.id === editingStop.id ? updated : s));
+      if (selectedStop?.id === editingStop.id) setSelectedStop(updated);
     } else {
       const newStop: Stop = {
         id: `s-${Date.now()}`,
@@ -119,7 +112,9 @@ export default function Stops() {
   const handleCloseStop = (stop: Stop) => {
     const now = new Date().toISOString();
     const duration = Math.round((new Date(now).getTime() - new Date(stop.startTime).getTime()) / 60000);
-    setStops(prev => prev.map(s => s.id === stop.id ? { ...s, endTime: now, duration } : s));
+    const updated = { ...stop, endTime: now, duration };
+    setStops(prev => prev.map(s => s.id === stop.id ? updated : s));
+    if (selectedStop?.id === stop.id) setSelectedStop(updated);
   };
 
   // Filtered + sorted
@@ -165,143 +160,155 @@ export default function Stops() {
   };
 
   return (
-    <div className="flex gap-0 h-full">
-      <div className="flex-1 flex flex-col gap-4 min-w-0 overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <h1 className="text-lg font-semibold text-foreground">Registro de Paradas</h1>
-            <p className="text-sm text-muted-foreground">{line.name}</p>
-          </div>
-          <Button size="sm" onClick={openCreate} className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" /> Nova Parada
-          </Button>
+    <div className="flex flex-col gap-4 overflow-y-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h1 className="text-lg font-semibold text-foreground">Registro de Paradas</h1>
+          <p className="text-sm text-muted-foreground">{line.name}</p>
         </div>
-
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <SummaryCard icon={AlertTriangle} label="Ativas" value={String(activeCount)} color="text-status-fault" />
-          <SummaryCard icon={Clock} label="Total Paradas" value={String(lineStops.length)} />
-          <SummaryCard icon={Timer} label="Tempo Total" value={`${totalDuration} min`} />
-          <SummaryCard icon={BarChart3} label="Maior Causa" value={
-            categoryBreakdown[0] ? STOP_CATEGORIES.find(c => c.id === categoryBreakdown[0][0])?.label ?? '—' : '—'
-          } />
-        </div>
-
-        {/* Filters */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative flex-1 min-w-[180px] max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Buscar máquina, nota..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="h-8 pl-8 text-sm"
-            />
-          </div>
-          <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="h-8 w-[160px] text-xs">
-              <Filter className="h-3 w-3 mr-1" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas categorias</SelectItem>
-              {STOP_CATEGORIES.map(c => (
-                <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
-            <SelectTrigger className="h-8 w-[130px] text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="active">Ativas</SelectItem>
-              <SelectItem value="closed">Encerradas</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Table */}
-        <div className="rounded-lg border bg-card overflow-hidden">
-          {/* Table header */}
-          <div className="grid grid-cols-[1fr_1fr_auto_auto_auto] gap-2 px-4 py-2 border-b bg-muted/30 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-            <button className="flex items-center gap-1 hover:text-foreground transition-colors text-left" onClick={() => toggleSort('startTime')}>
-              Horário <SortIcon field="startTime" />
-            </button>
-            <span>Máquina / Nota</span>
-            <button className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={() => toggleSort('category')}>
-              Categoria <SortIcon field="category" />
-            </button>
-            <button className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={() => toggleSort('duration')}>
-              Duração <SortIcon field="duration" />
-            </button>
-            <span className="text-right">Ações</span>
-          </div>
-
-          {filtered.length === 0 && (
-            <p className="px-4 py-8 text-sm text-muted-foreground text-center">Nenhuma parada encontrada.</p>
-          )}
-
-          {filtered.map(stop => {
-            const cat = STOP_CATEGORIES.find(c => c.id === stop.category);
-            const isActive = !stop.endTime;
-            return (
-              <div
-                key={stop.id}
-                className={cn(
-                  'grid grid-cols-[1fr_1fr_auto_auto_auto] gap-2 px-4 py-2.5 border-b last:border-b-0 items-center cursor-pointer transition-colors',
-                  isActive ? 'bg-destructive/5 hover:bg-destructive/10' : 'hover:bg-muted/30',
-                  selectedStop?.id === stop.id && 'ring-1 ring-inset ring-primary/30 bg-primary/5',
-                )}
-                onClick={() => setSelectedStop(stop)}
-              >
-                <div className="text-sm tabular-nums text-foreground">
-                  {new Date(stop.startTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                  {stop.endTime && (
-                    <span className="text-muted-foreground"> — {new Date(stop.endTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{stop.machineName}</p>
-                  {stop.notes && <p className="text-[11px] text-muted-foreground truncate">{stop.notes}</p>}
-                </div>
-                <Badge variant="outline" style={{ borderColor: cat?.color, color: cat?.color }} className="text-[10px] shrink-0">
-                  {cat?.label}
-                </Badge>
-                <div className="text-sm tabular-nums text-right min-w-[60px]">
-                  {isActive ? (
-                    <Badge variant="destructive" className="text-[10px]">Ativa</Badge>
-                  ) : (
-                    <span className="text-muted-foreground">{stop.duration} min</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 justify-end" onClick={e => e.stopPropagation()}>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(stop)}>
-                    <Pencil className="h-3 w-3 text-muted-foreground" />
-                  </Button>
-                  {isActive && (
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCloseStop(stop)}>
-                      <StopCircle className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <Button size="sm" onClick={openCreate} className="gap-1.5">
+          <Plus className="h-3.5 w-3.5" /> Nova Parada
+        </Button>
       </div>
 
-      {/* Detail panel */}
-      {selectedStop && (
-        <StopDetailPanel
-          stop={selectedStop}
-          onClose={() => setSelectedStop(null)}
-          onEdit={() => openEdit(selectedStop)}
-          onCloseStop={() => handleCloseStop(selectedStop)}
-        />
-      )}
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <SummaryCard icon={AlertTriangle} label="Ativas" value={String(activeCount)} color="text-status-fault" />
+        <SummaryCard icon={Clock} label="Total Paradas" value={String(lineStops.length)} />
+        <SummaryCard icon={Timer} label="Tempo Total" value={`${totalDuration} min`} />
+        <SummaryCard icon={BarChart3} label="Maior Causa" value={
+          categoryBreakdown[0] ? STOP_CATEGORIES.find(c => c.id === categoryBreakdown[0][0])?.label ?? '—' : '—'
+        } />
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Buscar máquina, nota..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="h-8 pl-8 text-sm"
+          />
+        </div>
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="h-8 w-[160px] text-xs">
+            <Filter className="h-3 w-3 mr-1" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas categorias</SelectItem>
+            {STOP_CATEGORIES.map(c => (
+              <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
+          <SelectTrigger className="h-8 w-[130px] text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="active">Ativas</SelectItem>
+            <SelectItem value="closed">Encerradas</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Table */}
+      <div className="rounded-lg border bg-card overflow-hidden">
+        {/* Table header */}
+        <div className="grid grid-cols-[120px_1fr_140px_80px_72px] gap-0 px-4 py-2.5 border-b bg-muted/40 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+          <button className="flex items-center gap-1 hover:text-foreground transition-colors text-left" onClick={() => toggleSort('startTime')}>
+            Horário <SortIcon field="startTime" />
+          </button>
+          <span>Máquina / Nota</span>
+          <button className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={() => toggleSort('category')}>
+            Categoria <SortIcon field="category" />
+          </button>
+          <button className="flex items-center gap-1 hover:text-foreground transition-colors text-right justify-end" onClick={() => toggleSort('duration')}>
+            Duração <SortIcon field="duration" />
+          </button>
+          <span className="text-right">Ações</span>
+        </div>
+
+        {filtered.length === 0 && (
+          <p className="px-4 py-8 text-sm text-muted-foreground text-center">Nenhuma parada encontrada.</p>
+        )}
+
+        {filtered.map(stop => {
+          const cat = STOP_CATEGORIES.find(c => c.id === stop.category);
+          const isActive = !stop.endTime;
+          return (
+            <div
+              key={stop.id}
+              className={cn(
+                'grid grid-cols-[120px_1fr_140px_80px_72px] gap-0 px-4 py-3 border-b last:border-b-0 items-center cursor-pointer transition-colors',
+                isActive ? 'bg-destructive/5 hover:bg-destructive/10' : 'hover:bg-muted/20',
+                selectedStop?.id === stop.id && 'bg-primary/5',
+              )}
+              onClick={() => setSelectedStop(stop)}
+            >
+              {/* Time */}
+              <div className="text-sm tabular-nums text-foreground font-medium">
+                {new Date(stop.startTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                {stop.endTime && (
+                  <span className="text-muted-foreground font-normal"> — {new Date(stop.endTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                )}
+              </div>
+
+              {/* Machine + notes */}
+              <div className="min-w-0 pr-3">
+                <p className="text-sm font-medium text-foreground truncate">{stop.machineName}</p>
+                {stop.notes && <p className="text-[11px] text-muted-foreground truncate mt-0.5">{stop.notes}</p>}
+              </div>
+
+              {/* Category */}
+              <div>
+                <Badge variant="outline" style={{ borderColor: cat?.color, color: cat?.color }} className="text-[10px]">
+                  {cat?.label}
+                </Badge>
+              </div>
+
+              {/* Duration */}
+              <div className="text-right">
+                {isActive ? (
+                  <Badge variant="destructive" className="text-[10px]">Ativa</Badge>
+                ) : (
+                  <span className="text-sm tabular-nums text-muted-foreground">{stop.duration} min</span>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-0.5 justify-end" onClick={e => e.stopPropagation()}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(stop)}>
+                  <Pencil className="h-3 w-3 text-muted-foreground" />
+                </Button>
+                {isActive && (
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCloseStop(stop)}>
+                    <StopCircle className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Detail Sheet */}
+      <Sheet open={!!selectedStop} onOpenChange={(open) => !open && setSelectedStop(null)}>
+        <SheetContent className="w-[360px] sm:w-[400px] p-0">
+          {selectedStop && (
+            <StopDetail
+              stop={selectedStop}
+              onEdit={() => openEdit(selectedStop)}
+              onCloseStop={() => handleCloseStop(selectedStop)}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -377,9 +384,8 @@ function SummaryCard({ icon: Icon, label, value, color }: { icon: any; label: st
   );
 }
 
-function StopDetailPanel({ stop, onClose, onEdit, onCloseStop }: {
+function StopDetail({ stop, onEdit, onCloseStop }: {
   stop: Stop;
-  onClose: () => void;
   onEdit: () => void;
   onCloseStop: () => void;
 }) {
@@ -387,61 +393,72 @@ function StopDetailPanel({ stop, onClose, onEdit, onCloseStop }: {
   const isActive = !stop.endTime;
 
   return (
-    <div className="w-80 shrink-0 border-l bg-card p-4 overflow-y-auto hidden lg:block">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-foreground">Detalhes da Parada</h3>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
-          <X className="h-3.5 w-3.5" />
-        </Button>
-      </div>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <SheetHeader className="px-6 py-5 border-b">
+        <SheetTitle className="text-base">Detalhes da Parada</SheetTitle>
+      </SheetHeader>
 
-      <div className="space-y-4">
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
         {isActive && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-destructive/10 border border-destructive/20">
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg bg-destructive/10 border border-destructive/20">
             <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
             <span className="text-xs font-medium text-destructive">Parada em andamento</span>
           </div>
         )}
 
-        <DetailRow label="Máquina" value={stop.machineName} />
-        <DetailRow label="Categoria">
+        <DetailField label="Máquina" value={stop.machineName} />
+
+        <DetailField label="Categoria">
           <Badge variant="outline" style={{ borderColor: cat?.color, color: cat?.color }} className="text-xs">
             {cat?.label}
           </Badge>
-        </DetailRow>
-        <DetailRow label="Início" value={new Date(stop.startTime).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} />
-        {stop.endTime && (
-          <DetailRow label="Fim" value={new Date(stop.endTime).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} />
-        )}
-        {stop.duration && <DetailRow label="Duração" value={`${stop.duration} min`} />}
-        <DetailRow label="Registrado por" value={stop.registeredBy} />
+        </DetailField>
+
+        <div className="grid grid-cols-2 gap-4">
+          <DetailField
+            label="Início"
+            value={new Date(stop.startTime).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+          />
+          {stop.endTime && (
+            <DetailField
+              label="Fim"
+              value={new Date(stop.endTime).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+            />
+          )}
+        </div>
+
+        {stop.duration != null && <DetailField label="Duração" value={`${stop.duration} min`} />}
+        <DetailField label="Registrado por" value={stop.registeredBy} />
 
         {stop.notes && (
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Observações</p>
-            <p className="text-sm text-foreground bg-muted/30 rounded-md p-2.5">{stop.notes}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Observações</p>
+            <p className="text-sm text-foreground bg-muted/30 rounded-lg p-3 leading-relaxed">{stop.notes}</p>
           </div>
         )}
+      </div>
 
-        <div className="flex gap-2 pt-2">
-          <Button variant="outline" size="sm" className="flex-1 text-xs gap-1" onClick={onEdit}>
-            <Pencil className="h-3 w-3" /> Editar
+      {/* Footer actions */}
+      <div className="border-t px-6 py-4 flex gap-2">
+        <Button variant="outline" size="sm" className="flex-1 text-xs gap-1.5" onClick={onEdit}>
+          <Pencil className="h-3 w-3" /> Editar
+        </Button>
+        {isActive && (
+          <Button variant="destructive" size="sm" className="flex-1 text-xs gap-1.5" onClick={onCloseStop}>
+            <StopCircle className="h-3 w-3" /> Encerrar
           </Button>
-          {isActive && (
-            <Button variant="destructive" size="sm" className="flex-1 text-xs gap-1" onClick={onCloseStop}>
-              <StopCircle className="h-3 w-3" /> Encerrar
-            </Button>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
-function DetailRow({ label, value, children }: { label: string; value?: string; children?: React.ReactNode }) {
+function DetailField({ label, value, children }: { label: string; value?: string; children?: React.ReactNode }) {
   return (
     <div>
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{label}</p>
+      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
       {children ?? <p className="text-sm font-medium text-foreground">{value}</p>}
     </div>
   );
