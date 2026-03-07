@@ -79,19 +79,19 @@ export const mockEquipments: Equipment[] = [
 
 export const mockFlows: ProductionFlow[] = [
   {
-    id: 'flow-1', name: 'Fluxo Principal', lineId: 'line-1',
+    id: 'flow-1', name: 'Produto A — Garrafa 500ml', sku: 'SKU-101', lineId: 'line-1',
     equipmentIds: ['eq-1', 'eq-2', 'eq-3', 'eq-4', 'eq-5'],
-    normalizer: 'unidades', nominalSpeed: 500,
+    nominalSpeed: 500,
   },
   {
-    id: 'flow-2', name: 'Fluxo Alternativo', lineId: 'line-1',
-    equipmentIds: ['eq-1', 'eq-2', 'eq-5'],
-    normalizer: 'kg', nominalSpeed: 350,
+    id: 'flow-2', name: 'Produto B — Garrafa 1L', sku: 'SKU-204', lineId: 'line-1',
+    equipmentIds: ['eq-1', 'eq-2', 'eq-3', 'eq-4', 'eq-5'],
+    nominalSpeed: 350,
   },
   {
-    id: 'flow-3', name: 'Fluxo Principal', lineId: 'line-2',
+    id: 'flow-3', name: 'Produto C — Kit Montagem', sku: 'SKU-310', lineId: 'line-2',
     equipmentIds: ['eq-6', 'eq-7', 'eq-8', 'eq-9', 'eq-10'],
-    normalizer: 'unidades', nominalSpeed: 300,
+    nominalSpeed: 300,
   },
 ];
 

@@ -10,13 +10,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { mockSites, mockLines, mockEquipments, mockFlows } from '@/data/mockData';
 import { STOP_CATEGORIES } from '@/types/production';
 import type { Site, ProductionLine, Equipment, ProductionFlow } from '@/types/production';
@@ -51,14 +44,14 @@ export default function Configuracoes() {
   const [formType, setFormType] = useState('');
   const [formLocation, setFormLocation] = useState('');
   const [formNominal, setFormNominal] = useState('');
-  const [formNormalizer, setFormNormalizer] = useState('unidades');
+  const [formSku, setFormSku] = useState('');
 
   const resetForm = () => {
     setFormName('');
     setFormType('');
     setFormLocation('');
     setFormNominal('');
-    setFormNormalizer('unidades');
+    setFormSku('');
   };
 
   const openCreateDialog = (type: typeof dialogType, contextId = '') => {
@@ -86,7 +79,7 @@ export default function Configuracoes() {
       if (e) { setFormName(e.name); setFormType(e.type); setFormNominal(String(e.nominalSpeed)); setDialogContext(e.lineId); }
     } else if (type === 'flow') {
       const f = flows.find(f => f.id === id);
-      if (f) { setFormName(f.name); setFormNominal(String(f.nominalSpeed)); setFormNormalizer(f.normalizer); setDialogContext(f.lineId); }
+      if (f) { setFormName(f.name); setFormSku(f.sku); setFormNominal(String(f.nominalSpeed)); setDialogContext(f.lineId); }
     }
     setDialogOpen(true);
   };
@@ -125,13 +118,14 @@ export default function Configuracoes() {
       }
     } else if (dialogType === 'flow') {
       if (dialogMode === 'create') {
+        const lineEquipIds = equipments.filter(e => e.lineId === dialogContext).map(e => e.id);
         const newFlow: ProductionFlow = {
-          id, name: formName, lineId: dialogContext,
-          equipmentIds: [], normalizer: formNormalizer, nominalSpeed: Number(formNominal) || 0,
+          id, name: formName, sku: formSku, lineId: dialogContext,
+          equipmentIds: lineEquipIds, nominalSpeed: Number(formNominal) || 0,
         };
         setFlows(prev => [...prev, newFlow]);
       } else {
-        setFlows(prev => prev.map(f => f.id === id ? { ...f, name: formName, normalizer: formNormalizer, nominalSpeed: Number(formNominal) || 0 } : f));
+        setFlows(prev => prev.map(f => f.id === id ? { ...f, name: formName, sku: formSku, nominalSpeed: Number(formNominal) || 0 } : f));
       }
     }
 
@@ -325,7 +319,7 @@ export default function Configuracoes() {
                                           <div>
                                             <p className="text-[11px] font-medium text-foreground">{flow.name}</p>
                                             <p className="text-[10px] text-muted-foreground">
-                                              Normalizador: <span className="font-medium text-foreground">{flow.normalizer}</span> · {flow.nominalSpeed} u/h
+                                              SKU: <span className="font-mono font-medium text-foreground">{flow.sku}</span> · Nominal: {flow.nominalSpeed} u/h
                                             </p>
                                           </div>
                                           <div className="flex items-center gap-2">
@@ -422,19 +416,8 @@ export default function Configuracoes() {
 
             {dialogType === 'flow' && (
               <div>
-                <Label className="text-[11px]">Normalizador</Label>
-                <Select value={formNormalizer} onValueChange={setFormNormalizer}>
-                  <SelectTrigger className="h-8 text-sm mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unidades">Unidades</SelectItem>
-                    <SelectItem value="kg">Quilogramas (kg)</SelectItem>
-                    <SelectItem value="litros">Litros</SelectItem>
-                    <SelectItem value="metros">Metros</SelectItem>
-                    <SelectItem value="toneladas">Toneladas</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-[11px]">SKU / Código do Produto</Label>
+                <Input value={formSku} onChange={e => setFormSku(e.target.value)} placeholder="Ex: SKU-204" className="h-8 text-sm mt-1 font-mono" />
               </div>
             )}
           </div>
