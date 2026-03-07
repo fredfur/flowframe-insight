@@ -32,7 +32,7 @@ export function MachineNode({ machine, onClick, isSelected }: MachineNodeProps) 
     <button
       onClick={() => onClick(machine)}
       className={cn(
-        'relative flex flex-col rounded-lg border bg-background cursor-pointer transition-all min-w-[120px] hover:bg-accent',
+        'relative flex flex-col rounded-lg border bg-background cursor-pointer transition-all w-full min-w-[100px] hover:bg-accent',
         isSelected ? 'border-primary ring-1 ring-primary/20' : 'border-border',
       )}
     >
