@@ -24,6 +24,7 @@ const dliConfig = {
 export default function LineLive() {
   const { selectedLineId } = useLineStore();
   const line = mockLines.find(l => l.id === selectedLineId) ?? mockLines[0];
+  const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
   const navigate = useNavigate();
 
   const sortedMachines = [...line.machines].sort((a, b) => a.position - b.position);
