@@ -3,7 +3,8 @@ import { OEEGauge } from '@/components/production/OEEGauge';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
 import { Factory, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
-import { AIInsightChips, MOCK_DASHBOARD_INSIGHTS, useChatAssistant } from '@/components/ai/AIInsights';
+import { AIInsightChips, MOCK_DASHBOARD_INSIGHTS } from '@/components/ai/AIInsights';
+import { useNavigate } from 'react-router-dom';
 
 const oeeChartConfig = {
   oee: { label: 'OEE', color: 'hsl(var(--primary))' },
