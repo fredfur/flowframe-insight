@@ -67,7 +67,7 @@ export default function LineLive() {
         <div>
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <p className="text-sm font-medium text-foreground">Fluxo de Linha</p>
-            <div className="hidden md:flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+            <div className="hidden lg:flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
               <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-running" /> Produzindo</span>
               <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-fault" /> Falha</span>
               <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-status-shortage" /> Falta</span>
@@ -79,7 +79,7 @@ export default function LineLive() {
           </div>
 
           {/* Desktop: horizontal flow */}
-          <div className="hidden md:flex items-stretch gap-0 overflow-x-auto pb-2 rounded-lg border bg-card p-4 w-full">
+          <div className="hidden lg:flex items-stretch gap-0 overflow-x-auto pb-2 rounded-lg border bg-card p-4 w-full">
             {flowNodes.map((node, i) => {
               const nextNode = flowNodes[i + 1];
               const transport = nextNode
@@ -100,7 +100,7 @@ export default function LineLive() {
           </div>
 
           {/* Mobile: vertical stacked flow */}
-          <div className="md:hidden rounded-lg border bg-card p-3 space-y-1">
+          <div className="lg:hidden rounded-lg border bg-card p-3 space-y-1">
             {flowNodes.map((node, i) => {
               const nextNode = flowNodes[i + 1];
               const transport = nextNode
