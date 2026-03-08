@@ -417,3 +417,38 @@ function SummaryCard({ label, value, sub, icon: Icon, variant = 'default' }: {
     </div>
   );
 }
+
+// --- Uptime bar (visual block indicator) ---
+
+function UptimeBar({ label, data }: { label: string; data: boolean[] }) {
+  const upCount = data.filter(Boolean).length;
+  const uptime = ((upCount / data.length) * 100).toFixed(1);
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] text-muted-foreground">{label}</span>
+        <span className={cn(
+          'text-[10px] font-medium tabular-nums',
+          Number(uptime) >= 95 ? 'text-status-running' :
+          Number(uptime) >= 70 ? 'text-status-setup' :
+          'text-destructive'
+        )}>
+          {uptime}% uptime
+        </span>
+      </div>
+      <div className="flex gap-[2px] h-3">
+        {data.map((up, i) => (
+          <div
+            key={i}
+            className={cn(
+              'flex-1 rounded-[2px] transition-colors',
+              up ? 'bg-status-running/70' : 'bg-destructive/70'
+            )}
+            title={`${mockConnTimeline[i]?.time ?? ''} — ${up ? 'Online' : 'Offline'}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
