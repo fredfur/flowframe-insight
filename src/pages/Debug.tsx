@@ -4,6 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Wifi, WifiOff, Camera, CameraOff, AlertTriangle, Info, XCircle, CheckCircle2, Terminal, Router, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 
 // --- Mock debug data ---
 
@@ -105,6 +106,35 @@ function formatTime(ts: string) {
   return new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
+// --- Connectivity timeline mock (last 2 hours, 5-min intervals) ---
+const mockConnTimeline = Array.from({ length: 24 }, (_, i) => {
+  const min = i * 5;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  const hour = 21 + h; // starts at 21:00
+  const label = `${String(hour).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  
+  // Gateway: mostly online with occasional spikes
+  const gwBase = 15 + Math.random() * 10;
+  const gwSpike = (i === 8 || i === 18) ? 140 + Math.random() * 90 : 0;
+  const gwDisconnect = i === 14; // one disconnect event
+  const gwLatency = gwDisconnect ? null : Math.round(gwBase + gwSpike);
+  
+  // Camera: has some outages
+  const camOffline = i >= 10 && i <= 12; // offline window
+  const camBase = 25 + Math.random() * 15;
+  const camSpike = i === 6 ? 180 : 0;
+  const camLatency = camOffline ? null : Math.round(camBase + camSpike);
+  
+  return {
+    time: label,
+    gateway: gwLatency,
+    camera: camLatency,
+    gwStatus: gwDisconnect ? 0 : 1,
+    camStatus: camOffline ? 0 : 1,
+  };
+});
+
 // --- Components ---
 
 export default function Debug() {
@@ -197,8 +227,81 @@ export default function Debug() {
         </TabsContent>
 
         {/* CONNECTIVITY TAB */}
-        <TabsContent value="connectivity" className="space-y-3">
-          <ScrollArea className="h-[420px] rounded-lg border border-border/50">
+        <TabsContent value="connectivity" className="space-y-4">
+          {/* Latency chart */}
+          <div className="rounded-lg border border-border/50 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Router className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-medium text-foreground">Latência — últimas 2 horas</span>
+              <span className="text-[10px] text-muted-foreground ml-auto">Intervalo de 5 min</span>
+            </div>
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={mockConnTimeline} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gwGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--status-running))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--status-running))" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="camGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--status-scheduled))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--status-scheduled))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
+                  <XAxis dataKey="time" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickLine={false} axisLine={false} unit="ms" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--popover))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '0.5rem',
+                      fontSize: '11px',
+                    }}
+                    labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
+                    formatter={(value: number | null, name: string) => [
+                      value !== null ? `${value}ms` : 'Offline',
+                      name === 'gateway' ? 'Gateway' : 'Câmera'
+                    ]}
+                  />
+                  <Legend
+                    wrapperStyle={{ fontSize: '11px' }}
+                    formatter={(value: string) => value === 'gateway' ? 'Gateway ESP32' : 'ESP32-CAM'}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="gateway"
+                    stroke="hsl(var(--status-running))"
+                    fill="url(#gwGrad)"
+                    strokeWidth={1.5}
+                    dot={false}
+                    connectNulls={false}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="camera"
+                    stroke="hsl(var(--status-scheduled))"
+                    fill="url(#camGrad)"
+                    strokeWidth={1.5}
+                    dot={false}
+                    connectNulls={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Uptime status bar */}
+          <div className="rounded-lg border border-border/50 p-4 space-y-3">
+            <span className="text-xs font-medium text-foreground">Status de Conexão</span>
+            <div className="space-y-2">
+              <UptimeBar label="Gateway ESP32" data={mockConnTimeline.map(d => d.gwStatus === 1)} />
+              <UptimeBar label="ESP32-CAM" data={mockConnTimeline.map(d => d.camStatus === 1)} />
+            </div>
+          </div>
+
+          {/* Event log */}
+          <ScrollArea className="h-[260px] rounded-lg border border-border/50">
             <div className="divide-y divide-border/30">
               {mockConnectivity.map(evt => {
                 const ecfg = eventConfig[evt.event];
@@ -310,6 +413,41 @@ function SummaryCard({ label, value, sub, icon: Icon, variant = 'default' }: {
           {value}
         </span>
         {sub && <span className="text-[10px] text-muted-foreground">{sub}</span>}
+      </div>
+    </div>
+  );
+}
+
+// --- Uptime bar (visual block indicator) ---
+
+function UptimeBar({ label, data }: { label: string; data: boolean[] }) {
+  const upCount = data.filter(Boolean).length;
+  const uptime = ((upCount / data.length) * 100).toFixed(1);
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] text-muted-foreground">{label}</span>
+        <span className={cn(
+          'text-[10px] font-medium tabular-nums',
+          Number(uptime) >= 95 ? 'text-status-running' :
+          Number(uptime) >= 70 ? 'text-status-setup' :
+          'text-destructive'
+        )}>
+          {uptime}% uptime
+        </span>
+      </div>
+      <div className="flex gap-[2px] h-3">
+        {data.map((up, i) => (
+          <div
+            key={i}
+            className={cn(
+              'flex-1 rounded-[2px] transition-colors',
+              up ? 'bg-status-running/70' : 'bg-destructive/70'
+            )}
+            title={`${mockConnTimeline[i]?.time ?? ''} — ${up ? 'Online' : 'Offline'}`}
+          />
+        ))}
       </div>
     </div>
   );
