@@ -4,6 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Wifi, WifiOff, Camera, CameraOff, AlertTriangle, Info, XCircle, CheckCircle2, Terminal, Router, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 
 // --- Mock debug data ---
 
