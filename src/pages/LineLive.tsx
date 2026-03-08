@@ -12,6 +12,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
 import { AIInsightChips, MOCK_LINELIVE_INSIGHTS } from '@/components/ai/AIInsights';
 import { useNavigate } from 'react-router-dom';
+import { ClipboardList } from 'lucide-react';
 
 const vGraphConfig = {
   throughput: { label: 'Vazão Real', color: 'hsl(var(--primary))' },
