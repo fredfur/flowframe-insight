@@ -64,6 +64,8 @@ export default function LineLive() {
 
         <LineMetricsBar line={line} />
 
+        <ProductionOrderPanel lineId={line.id} />
+
         <LineTimeline
           machines={sortedMachines}
           timelines={mockTimelines[line.id] ?? []}
