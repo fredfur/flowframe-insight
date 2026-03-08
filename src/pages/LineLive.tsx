@@ -6,12 +6,13 @@ import { FlowNode } from '@/components/production/FlowNode';
 import { FlowConnector } from '@/components/production/FlowConnector';
 import { MachineDetailPanel } from '@/components/production/MachineDetailPanel';
 import { LineMetricsBar } from '@/components/production/LineMetricsBar';
+import { Button } from '@/components/ui/button';
 import { LineTimeline } from '@/components/production/LineTimeline';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
 import { AIInsightChips, MOCK_LINELIVE_INSIGHTS } from '@/components/ai/AIInsights';
-import { ProductionOrderPanel } from '@/components/production/ProductionOrderPanel';
 import { useNavigate } from 'react-router-dom';
+import { ClipboardList } from 'lucide-react';
 
 const vGraphConfig = {
   throughput: { label: 'Vazão Real', color: 'hsl(var(--primary))' },
@@ -64,7 +65,15 @@ export default function LineLive() {
 
         <LineMetricsBar line={line} />
 
-        <ProductionOrderPanel lineId={line.id} />
+        <Button
+          variant="outline"
+          size="sm"
+          className="self-start gap-2 text-xs"
+          onClick={() => navigate('/ordens')}
+        >
+          <ClipboardList className="h-3.5 w-3.5" />
+          Ordens de Produção
+        </Button>
 
         <LineTimeline
           machines={sortedMachines}
