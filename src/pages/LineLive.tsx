@@ -6,6 +6,7 @@ import { FlowNode } from '@/components/production/FlowNode';
 import { FlowConnector } from '@/components/production/FlowConnector';
 import { MachineDetailPanel } from '@/components/production/MachineDetailPanel';
 import { LineMetricsBar } from '@/components/production/LineMetricsBar';
+import { Button } from '@/components/ui/button';
 import { LineTimeline } from '@/components/production/LineTimeline';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
