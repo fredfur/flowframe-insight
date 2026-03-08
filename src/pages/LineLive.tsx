@@ -64,7 +64,15 @@ export default function LineLive() {
 
         <LineMetricsBar line={line} />
 
-        <ProductionOrderPanel lineId={line.id} />
+        <Button
+          variant="outline"
+          size="sm"
+          className="self-start gap-2 text-xs"
+          onClick={() => navigate('/ordens')}
+        >
+          <ClipboardList className="h-3.5 w-3.5" />
+          Ordens de Produção
+        </Button>
 
         <LineTimeline
           machines={sortedMachines}
