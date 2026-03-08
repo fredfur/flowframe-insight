@@ -56,7 +56,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
@@ -76,6 +76,32 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
+            {adminItems.length > 0 && (
+              <>
+                <div className="my-2 mx-2 border-t border-sidebar-border" />
+                <SidebarMenu>
+                  {adminItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive(item.url)}
+                        tooltip={item.title}
+                      >
+                        <NavLink
+                          to={item.url}
+                          end
+                          className="text-sidebar-foreground/60 hover:text-sidebar-accent-foreground transition-colors"
+                          activeClassName="text-sidebar-accent-foreground bg-sidebar-accent font-medium"
+                        >
+                          <item.icon className="h-5.5 w-5.5 shrink-0" style={{ width: '1.3rem', height: '1.3rem' }} />
+                          <span>{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </>
+            )}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
