@@ -17,7 +17,7 @@ export function LineMetricsBar({ line }: LineMetricsBarProps) {
 
 function MetricCard({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
   return (
-    <div className="flex flex-col justify-center rounded-lg border bg-card px-3 py-2.5">
+    <div className="flex flex-col justify-center rounded-lg border border-border/50 px-3 py-2.5">
       <span className="text-xs text-muted-foreground mb-0.5">{label}</span>
       <div className="flex items-baseline gap-1">
         <span className={`text-lg font-semibold tabular-nums ${highlight ? 'text-primary' : 'text-foreground'}`}>{value}</span>
