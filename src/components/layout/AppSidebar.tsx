@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, BarChart3, Settings, Factory, LogOut, ClipboardList, Sparkles, PackageCheck } from 'lucide-react';
+import { Activity, AlertTriangle, BarChart3, Settings, Factory, LogOut, ClipboardList, Sparkles, PackageCheck, Terminal } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
