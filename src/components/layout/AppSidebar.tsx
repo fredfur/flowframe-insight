@@ -25,7 +25,7 @@ const navItems = [
   { title: 'Assistente IA', url: '/assistente', icon: Sparkles },
   { title: 'Configurações', url: '/configuracoes', icon: Settings },
   { title: 'Debug', url: '/debug', icon: Terminal, adminOnly: true },
-] as const;
+] as Array<{ title: string; url: string; icon: typeof Activity; adminOnly?: boolean }>;
 
 export function AppSidebar() {
   const { state } = useSidebar();
