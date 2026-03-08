@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, BarChart3, Settings, Factory, LogOut, ClipboardList, Sparkles, PackageCheck } from 'lucide-react';
+import { Activity, AlertTriangle, BarChart3, Settings, Factory, LogOut, ClipboardList, Sparkles, PackageCheck, Terminal } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -24,7 +24,8 @@ const navItems = [
   { title: 'Produção H/H', url: '/producao', icon: ClipboardList },
   { title: 'Assistente IA', url: '/assistente', icon: Sparkles },
   { title: 'Configurações', url: '/configuracoes', icon: Settings },
-];
+  { title: 'Debug', url: '/debug', icon: Terminal, adminOnly: true },
+] as Array<{ title: string; url: string; icon: typeof Activity; adminOnly?: boolean }>;
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -32,6 +33,12 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const isActive = (path: string) => location.pathname === path;
+  // TODO: replace with real role check from auth
+  const isAdmin = true;
+
+  const visibleItems = navItems.filter(item => !item.adminOnly || isAdmin);
+  const mainItems = visibleItems.filter(item => !item.adminOnly);
+  const adminItems = visibleItems.filter(item => item.adminOnly);
 
   return (
     <Sidebar collapsible="icon">
@@ -49,7 +56,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
@@ -69,6 +76,32 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
+            {adminItems.length > 0 && (
+              <>
+                <div className="my-2 mx-2 border-t border-sidebar-border" />
+                <SidebarMenu>
+                  {adminItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive(item.url)}
+                        tooltip={item.title}
+                      >
+                        <NavLink
+                          to={item.url}
+                          end
+                          className="text-sidebar-foreground/60 hover:text-sidebar-accent-foreground transition-colors"
+                          activeClassName="text-sidebar-accent-foreground bg-sidebar-accent font-medium"
+                        >
+                          <item.icon className="h-5.5 w-5.5 shrink-0" style={{ width: '1.3rem', height: '1.3rem' }} />
+                          <span>{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </>
+            )}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

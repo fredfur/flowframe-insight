@@ -12,6 +12,7 @@ import Dashboard from "@/pages/Dashboard";
 import Configuracoes from "@/pages/Configuracoes";
 import Assistente from "@/pages/Assistente";
 import ProductionOrders from "@/pages/ProductionOrders";
+import Debug from "@/pages/Debug";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import NotFound from "./pages/NotFound";
@@ -36,6 +37,7 @@ const App = () => (
               <Route path="/configuracoes" element={<Configuracoes />} />
               <Route path="/ordens" element={<ProductionOrders />} />
               <Route path="/assistente" element={<Assistente />} />
+              <Route path="/debug" element={<Debug />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
