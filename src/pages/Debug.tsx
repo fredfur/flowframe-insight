@@ -106,6 +106,35 @@ function formatTime(ts: string) {
   return new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
+// --- Connectivity timeline mock (last 2 hours, 5-min intervals) ---
+const mockConnTimeline = Array.from({ length: 24 }, (_, i) => {
+  const min = i * 5;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  const hour = 21 + h; // starts at 21:00
+  const label = `${String(hour).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  
+  // Gateway: mostly online with occasional spikes
+  const gwBase = 15 + Math.random() * 10;
+  const gwSpike = (i === 8 || i === 18) ? 140 + Math.random() * 90 : 0;
+  const gwDisconnect = i === 14; // one disconnect event
+  const gwLatency = gwDisconnect ? null : Math.round(gwBase + gwSpike);
+  
+  // Camera: has some outages
+  const camOffline = i >= 10 && i <= 12; // offline window
+  const camBase = 25 + Math.random() * 15;
+  const camSpike = i === 6 ? 180 : 0;
+  const camLatency = camOffline ? null : Math.round(camBase + camSpike);
+  
+  return {
+    time: label,
+    gateway: gwLatency,
+    camera: camLatency,
+    gwStatus: gwDisconnect ? 0 : 1,
+    camStatus: camOffline ? 0 : 1,
+  };
+});
+
 // --- Components ---
 
 export default function Debug() {
