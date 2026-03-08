@@ -24,7 +24,8 @@ const navItems = [
   { title: 'Produção H/H', url: '/producao', icon: ClipboardList },
   { title: 'Assistente IA', url: '/assistente', icon: Sparkles },
   { title: 'Configurações', url: '/configuracoes', icon: Settings },
-];
+  { title: 'Debug', url: '/debug', icon: Terminal, adminOnly: true },
+] as const;
 
 export function AppSidebar() {
   const { state } = useSidebar();
