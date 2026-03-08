@@ -12,6 +12,7 @@ import Dashboard from "@/pages/Dashboard";
 import Configuracoes from "@/pages/Configuracoes";
 import Assistente from "@/pages/Assistente";
 import ProductionOrders from "@/pages/ProductionOrders";
+import Debug from "@/pages/Debug";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import NotFound from "./pages/NotFound";
