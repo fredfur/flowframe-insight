@@ -10,6 +10,7 @@ import { LineTimeline } from '@/components/production/LineTimeline';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
 import { AIInsightChips, MOCK_LINELIVE_INSIGHTS } from '@/components/ai/AIInsights';
+import { ProductionOrderPanel } from '@/components/production/ProductionOrderPanel';
 import { useNavigate } from 'react-router-dom';
 
 const vGraphConfig = {
@@ -62,6 +63,8 @@ export default function LineLive() {
         </div>
 
         <LineMetricsBar line={line} />
+
+        <ProductionOrderPanel lineId={line.id} />
 
         <LineTimeline
           machines={sortedMachines}
