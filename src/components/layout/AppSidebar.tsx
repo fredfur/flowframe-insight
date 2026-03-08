@@ -33,6 +33,12 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const isActive = (path: string) => location.pathname === path;
+  // TODO: replace with real role check from auth
+  const isAdmin = true;
+
+  const visibleItems = navItems.filter(item => !item.adminOnly || isAdmin);
+  const mainItems = visibleItems.filter(item => !item.adminOnly);
+  const adminItems = visibleItems.filter(item => item.adminOnly);
 
   return (
     <Sidebar collapsible="icon">
