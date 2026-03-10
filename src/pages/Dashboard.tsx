@@ -124,7 +124,7 @@ export default function Dashboard() {
         <div className="rounded-lg border bg-card p-4 lg:col-span-2">
           <p className="text-[11px] text-muted-foreground mb-3">Pareto de Paradas — Tempo Total (min)</p>
           <ChartContainer config={paretoConfig} className="h-[220px] w-full">
-            <BarChart data={mockParetoData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+            <BarChart data={filteredParetoData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="category" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
               <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
