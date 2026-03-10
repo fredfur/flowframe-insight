@@ -62,6 +62,8 @@ export default function Dashboard() {
         <AIInsightChips insights={MOCK_DASHBOARD_INSIGHTS} onAskAI={() => navigate('/assistente')} />
       </div>
 
+      <DashboardFilters filters={filters} onChange={setFilters} />
+
       {/* Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         <SummaryCard icon={Factory} label="Linhas Ativas" value={String(mockLines.length)} />
