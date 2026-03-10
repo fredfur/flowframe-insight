@@ -1,10 +1,12 @@
-import { mockLines, mockOEEHistory, mockDLIData, mockParetoData } from '@/data/mockData';
+import { useState, useMemo } from 'react';
+import { mockLines, mockOEEHistory, mockDLIData, mockParetoData, mockStops } from '@/data/mockData';
 import { OEEGauge } from '@/components/production/OEEGauge';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
 import { Factory, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
 import { AIInsightChips, MOCK_DASHBOARD_INSIGHTS } from '@/components/ai/AIInsights';
 import { useNavigate } from 'react-router-dom';
+import { DashboardFilters, DEFAULT_FILTERS, type DashboardFilterValues } from '@/components/dashboard/DashboardFilters';
 
 const oeeChartConfig = {
   oee: { label: 'OEE', color: 'hsl(var(--primary))' },
@@ -24,9 +26,34 @@ const paretoConfig = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const totalOEE = mockLines.reduce((sum, l) => sum + l.oee.oee, 0) / mockLines.length;
-  const totalThroughput = mockLines.reduce((sum, l) => sum + l.throughput, 0);
-  const totalStoppedMachines = mockLines.reduce((sum, l) => sum + l.machines.filter(m => m.status !== 'running').length, 0);
+  const [filters, setFilters] = useState<DashboardFilterValues>(DEFAULT_FILTERS);
+
+  const filteredLines = useMemo(() => {
+    let lines = mockLines;
+    if (filters.lineId !== 'all') {
+      lines = lines.filter(l => l.id === filters.lineId);
+    }
+    if (filters.machineStatus !== 'all') {
+      lines = lines.map(l => ({
+        ...l,
+        machines: l.machines.filter(m => m.status === filters.machineStatus),
+      }));
+    }
+    return lines;
+  }, [filters.lineId, filters.machineStatus]);
+
+  const filteredParetoData = useMemo(() => {
+    if (filters.stopCategory === 'all') return mockParetoData;
+    const catLabel = {
+      maintenance: 'Manutenção', setup: 'Setup', material_shortage: 'Falta Material',
+      quality_issue: 'Qualidade', operator_absence: 'Operador', planned: 'Planejada', other: 'Outros',
+    }[filters.stopCategory];
+    return mockParetoData.filter(d => d.category === catLabel);
+  }, [filters.stopCategory]);
+
+  const totalOEE = filteredLines.reduce((sum, l) => sum + l.oee.oee, 0) / (filteredLines.length || 1);
+  const totalThroughput = filteredLines.reduce((sum, l) => sum + l.throughput, 0);
+  const totalStoppedMachines = filteredLines.reduce((sum, l) => sum + l.machines.filter(m => m.status !== 'running').length, 0);
 
   return (
     <div className="space-y-5">
@@ -35,9 +62,11 @@ export default function Dashboard() {
         <AIInsightChips insights={MOCK_DASHBOARD_INSIGHTS} onAskAI={() => navigate('/assistente')} />
       </div>
 
+      <DashboardFilters filters={filters} onChange={setFilters} />
+
       {/* Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-        <SummaryCard icon={Factory} label="Linhas Ativas" value={String(mockLines.length)} />
+        <SummaryCard icon={Factory} label="Linhas Ativas" value={String(filteredLines.length)} />
         <SummaryCard icon={TrendingUp} label="OEE Médio" value={`${totalOEE.toFixed(1)}%`} />
         <SummaryCard icon={Zap} label="Vazão Total" value={`${totalThroughput} u/h`} />
         <SummaryCard icon={AlertTriangle} label="Máquinas Paradas" value={String(totalStoppedMachines)} destructive={totalStoppedMachines > 0} />
@@ -45,7 +74,7 @@ export default function Dashboard() {
 
       {/* OEE per line */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {mockLines.map((line) => (
+        {filteredLines.map((line) => (
           <div key={line.id} className="rounded-lg border bg-card p-4">
             <p className="text-[12px] font-medium text-foreground mb-3">{line.name}</p>
             <div className="flex items-center gap-5">
@@ -95,7 +124,7 @@ export default function Dashboard() {
         <div className="rounded-lg border bg-card p-4 lg:col-span-2">
           <p className="text-[11px] text-muted-foreground mb-3">Pareto de Paradas — Tempo Total (min)</p>
           <ChartContainer config={paretoConfig} className="h-[220px] w-full">
-            <BarChart data={mockParetoData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+            <BarChart data={filteredParetoData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="category" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
               <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
