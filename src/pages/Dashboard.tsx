@@ -66,7 +66,7 @@ export default function Dashboard() {
 
       {/* Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-        <SummaryCard icon={Factory} label="Linhas Ativas" value={String(mockLines.length)} />
+        <SummaryCard icon={Factory} label="Linhas Ativas" value={String(filteredLines.length)} />
         <SummaryCard icon={TrendingUp} label="OEE Médio" value={`${totalOEE.toFixed(1)}%`} />
         <SummaryCard icon={Zap} label="Vazão Total" value={`${totalThroughput} u/h`} />
         <SummaryCard icon={AlertTriangle} label="Máquinas Paradas" value={String(totalStoppedMachines)} destructive={totalStoppedMachines > 0} />
