@@ -26,9 +26,34 @@ const paretoConfig = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const totalOEE = mockLines.reduce((sum, l) => sum + l.oee.oee, 0) / mockLines.length;
-  const totalThroughput = mockLines.reduce((sum, l) => sum + l.throughput, 0);
-  const totalStoppedMachines = mockLines.reduce((sum, l) => sum + l.machines.filter(m => m.status !== 'running').length, 0);
+  const [filters, setFilters] = useState<DashboardFilterValues>(DEFAULT_FILTERS);
+
+  const filteredLines = useMemo(() => {
+    let lines = mockLines;
+    if (filters.lineId !== 'all') {
+      lines = lines.filter(l => l.id === filters.lineId);
+    }
+    if (filters.machineStatus !== 'all') {
+      lines = lines.map(l => ({
+        ...l,
+        machines: l.machines.filter(m => m.status === filters.machineStatus),
+      }));
+    }
+    return lines;
+  }, [filters.lineId, filters.machineStatus]);
+
+  const filteredParetoData = useMemo(() => {
+    if (filters.stopCategory === 'all') return mockParetoData;
+    const catLabel = {
+      maintenance: 'Manutenção', setup: 'Setup', material_shortage: 'Falta Material',
+      quality_issue: 'Qualidade', operator_absence: 'Operador', planned: 'Planejada', other: 'Outros',
+    }[filters.stopCategory];
+    return mockParetoData.filter(d => d.category === catLabel);
+  }, [filters.stopCategory]);
+
+  const totalOEE = filteredLines.reduce((sum, l) => sum + l.oee.oee, 0) / (filteredLines.length || 1);
+  const totalThroughput = filteredLines.reduce((sum, l) => sum + l.throughput, 0);
+  const totalStoppedMachines = filteredLines.reduce((sum, l) => sum + l.machines.filter(m => m.status !== 'running').length, 0);
 
   return (
     <div className="space-y-5">
