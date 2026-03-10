@@ -74,7 +74,7 @@ export default function Dashboard() {
 
       {/* OEE per line */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {mockLines.map((line) => (
+        {filteredLines.map((line) => (
           <div key={line.id} className="rounded-lg border bg-card p-4">
             <p className="text-[12px] font-medium text-foreground mb-3">{line.name}</p>
             <div className="flex items-center gap-5">
