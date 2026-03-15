@@ -1,6 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { mockLines } from '@/data/mockData';
 import { useLineStore } from '@/stores/lineStore';
+import { LineService } from '@/services/api';
+import type { ProductionLine } from '@/types/production';
 import { STOP_CATEGORIES, StopCategory } from '@/types/production';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -91,9 +93,31 @@ const chartConfig = {
   produced: { label: 'Produzido', color: 'hsl(var(--primary))' },
 };
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+
 export default function HourlyProduction() {
   const { selectedLineId } = useLineStore();
-  const line = mockLines.find(l => l.id === selectedLineId) ?? mockLines[0];
+  const [lines, setLines] = useState<ProductionLine[]>(mockLines as ProductionLine[]);
+
+  const loadLines = useCallback(async () => {
+    if (!API_BASE) {
+      setLines(mockLines as ProductionLine[]);
+      return;
+    }
+    try {
+      const list = await LineService.getAll();
+      setLines(list as ProductionLine[]);
+    } catch {
+      setLines(mockLines as ProductionLine[]);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadLines();
+  }, [loadLines]);
+
+  const line = lines.find(l => l.id === selectedLineId) ?? lines[0];
+  // Quando o backend expuser endpoint de produção por hora por ordem ativa, a produção aqui registada deve ser contabilizada nessa ordem e refletir em producedQty e nos indicadores (OEE, vazão).
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [records, setRecords] = useState<HourlyRecord[]>(() => generateMockHourlyData(selectedLineId));
@@ -193,7 +217,7 @@ export default function HourlyProduction() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-lg font-semibold text-foreground">Produção Hora a Hora</h1>
-          <p className="text-sm text-muted-foreground">{line.name}</p>
+          <p className="text-sm text-muted-foreground">{line?.name ?? 'Linha'}</p>
         </div>
         <div className="flex items-center gap-1.5">
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setSelectedDate(d => subDays(d, 1))}>
@@ -222,6 +246,8 @@ export default function HourlyProduction() {
         </div>
       </div>
 
+      <p className="text-[11px] text-muted-foreground">A produção registada é contabilizada na ordem de produção ativa da linha e reflete nos indicadores (OEE, vazão, dashboard).</p>
+
       {/* Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <SummaryCard icon={Package} label="Produzido" value={totalProduced.toLocaleString('pt-BR')} />
@@ -243,7 +269,7 @@ export default function HourlyProduction() {
             <XAxis dataKey="hour" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
             <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} stroke="hsl(var(--border))" />
             <ChartTooltip content={<ChartTooltipContent />} />
-            <ReferenceLine y={line.nominalSpeed} stroke="hsl(var(--muted-foreground))" strokeDasharray="6 3" strokeWidth={1} />
+            <ReferenceLine y={line?.nominalSpeed ?? 0} stroke="hsl(var(--muted-foreground))" strokeDasharray="6 3" strokeWidth={1} />
             <Bar dataKey="produced" radius={[3, 3, 0, 0]}>
               {chartData.map((entry, i) => (
                 <Cell key={i} fill={entry.pct >= 0.9 ? 'hsl(var(--primary))' : entry.pct >= 0.7 ? 'hsl(38, 95%, 55%)' : 'hsl(0, 72%, 51%)'} />

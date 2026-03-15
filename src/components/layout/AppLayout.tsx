@@ -9,6 +9,8 @@ import { useLineStore } from '@/stores/lineStore';
 import { useTheme } from 'next-themes';
 import { ConnectionIndicator } from './ConnectionIndicator';
 import { useEffect, useState } from 'react';
+import { LineService } from '@/services/api';
+import type { ProductionLine } from '@/types/production';
 
 import {
   DropdownMenu,
@@ -18,16 +20,34 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+
 export function AppLayout() {
   const { selectedLineId, setSelectedLineId } = useLineStore();
   const { theme, setTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [pageKey, setPageKey] = useState(location.pathname);
+  const [lines, setLines] = useState<ProductionLine[]>(mockLines as ProductionLine[]);
 
   useEffect(() => {
     setPageKey(location.pathname);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!API_BASE) {
+      setLines(mockLines as ProductionLine[]);
+      return;
+    }
+    LineService.getAll()
+      .then((list) => {
+        setLines(list as ProductionLine[]);
+        if (list.length > 0 && !list.some((l) => l.id === selectedLineId)) {
+          setSelectedLineId(list[0].id);
+        }
+      })
+      .catch(() => setLines(mockLines as ProductionLine[]));
+  }, [API_BASE, selectedLineId, setSelectedLineId]);
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -43,7 +63,7 @@ export function AppLayout() {
                   <SelectValue placeholder="Selecionar linha" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockLines.map((line) => (
+                  {lines.map((line) => (
                     <SelectItem key={line.id} value={line.id}>
                       {line.name}
                     </SelectItem>

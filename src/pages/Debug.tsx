@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Wifi, WifiOff, Camera, CameraOff, AlertTriangle, Info, XCircle, CheckCircle2, Terminal, Router, Shield } from 'lucide-react';
+import { Wifi, WifiOff, Camera, CameraOff, AlertTriangle, Info, XCircle, CheckCircle2, Terminal, Router, Shield, Trash2, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { useApiErrorLogStore } from '@/stores/apiErrorLogStore';
 
 // --- Mock debug data ---
 
@@ -139,6 +141,7 @@ const mockConnTimeline = Array.from({ length: 24 }, (_, i) => {
 
 export default function Debug() {
   const [logFilter, setLogFilter] = useState<LogLevel | 'all'>('all');
+  const { entries: apiErrors, clear: clearApiErrors } = useApiErrorLogStore();
 
   const filteredLogs = logFilter === 'all' ? mockLogs : mockLogs.filter(l => l.level === logFilter);
   const unresolvedErrors = mockErrors.filter(e => !e.resolved).length;
@@ -146,7 +149,7 @@ export default function Debug() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10">
           <Terminal className="h-4 w-4 text-destructive" />
         </div>
@@ -154,15 +157,28 @@ export default function Debug() {
           <h1 className="text-lg font-semibold text-foreground">Debug</h1>
           <p className="text-xs text-muted-foreground">Logs, conectividade e sinais de erro — acesso restrito</p>
         </div>
-        <Badge variant="outline" className="ml-auto gap-1 border-destructive/30 text-destructive text-[10px]">
-          <Shield className="h-3 w-3" />
-          Admin
-        </Badge>
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={clearApiErrors}
+            disabled={apiErrors.length === 0}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Limpar histórico de erros API
+          </Button>
+          <Badge variant="outline" className="gap-1 border-destructive/30 text-destructive text-[10px]">
+            <Shield className="h-3 w-3" />
+            Admin
+          </Badge>
+        </div>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <SummaryCard label="Logs (última hora)" value={String(mockLogs.length)} icon={Terminal} />
+        <SummaryCard label="Erros API" value={String(apiErrors.length)} icon={Globe} variant={apiErrors.length > 0 ? 'danger' : 'default'} />
         <SummaryCard label="Erros não resolvidos" value={String(unresolvedErrors)} icon={XCircle} variant={unresolvedErrors > 0 ? 'danger' : 'default'} />
         <SummaryCard label="Gateway" value="Online" sub="18ms" icon={Wifi} variant="success" />
         <SummaryCard label="Câmera" value="Offline" sub="2 min" icon={CameraOff} variant="danger" />
@@ -178,6 +194,15 @@ export default function Debug() {
           <TabsTrigger value="connectivity" className="text-xs gap-1.5">
             <Router className="h-3.5 w-3.5" />
             Conectividade
+          </TabsTrigger>
+          <TabsTrigger value="apiErrors" className="text-xs gap-1.5">
+            <Globe className="h-3.5 w-3.5" />
+            Erros API
+            {apiErrors.length > 0 && (
+              <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[9px] text-destructive-foreground font-bold">
+                {apiErrors.length}
+              </span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="errors" className="text-xs gap-1.5">
             <AlertTriangle className="h-3.5 w-3.5" />
@@ -337,6 +362,40 @@ export default function Debug() {
                   </div>
                 );
               })}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        {/* API ERRORS TAB — erros reais das chamadas à API para diagnóstico */}
+        <TabsContent value="apiErrors" className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              Erros capturados nas chamadas ao backend (fetch). Útil para diagnosticar 404, CORS, rede, etc.
+            </p>
+            <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1 shrink-0" onClick={clearApiErrors} disabled={apiErrors.length === 0}>
+              <Trash2 className="h-3 w-3" /> Limpar
+            </Button>
+          </div>
+          <ScrollArea className="h-[420px] rounded-lg border border-border/50">
+            <div className="divide-y divide-border/30 font-mono text-[11px]">
+              {apiErrors.length === 0 ? (
+                <div className="px-3 py-6 text-center text-muted-foreground">Nenhum erro de API registado.</div>
+              ) : (
+                apiErrors.map((e) => (
+                  <div key={e.id} className="px-3 py-2.5 hover:bg-accent/30 transition-colors">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-destructive/30 text-destructive bg-destructive/10">
+                        {e.status || '—'} {e.statusText}
+                      </Badge>
+                      <span className="text-muted-foreground">{e.method}</span>
+                      <span className="text-foreground break-all">{e.endpoint}</span>
+                      <span className="text-muted-foreground tabular-nums shrink-0">{formatTime(e.timestamp)}</span>
+                    </div>
+                    <p className="text-destructive mt-1 break-words">{e.message}</p>
+                    {e.body && <pre className="mt-1 p-2 rounded bg-muted/50 text-[10px] overflow-x-auto max-h-24 overflow-y-auto">{e.body}</pre>}
+                  </div>
+                ))
+              )}
             </div>
           </ScrollArea>
         </TabsContent>

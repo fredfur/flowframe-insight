@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_DB: flowvision
+      POSTGRES_USER: flowvision
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-flowvision123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowvision -d flowvision"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+
+  api:
+    build: .
+    ports:
+      - "5050:8080"
+    environment:
+      ConnectionStrings__DefaultConnection: Host=postgres;Database=flowvision;Username=flowvision;Password=${DB_PASSWORD:-flowvision123}
+      JwtSettings__Secret: ${JWT_SECRET:-FlowVision-SuperSecretKey-Min32Chars!!}
+      JwtSettings__Issuer: FlowVision
+      JwtSettings__Audience: FlowVisionApp
+      Gateway__ApiKey: ${GATEWAY_API_KEY:-gateway-secret-key}
+      Gateway__HeartbeatTimeoutSeconds: 30
+      Mqtt__Host: mqtt
+      Mqtt__Port: 1883
+      Mqtt__ClientId: flowvision-backend
+      Mqtt__BaseTopic: flowvision/
+      Cors__AllowedOrigins: __CORS__
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

@@ -96,18 +96,21 @@ function aggregateTimelines(timelines: MachineTimeline[], start: number, end: nu
   return result;
 }
 
+const DEFAULT_STATUS_META = { label: 'Produzindo', colorClass: 'bg-status-running' };
+
 function TimelineBar({ segments, start, totalMin, height = 'h-5' }: { segments: TimelineSegment[]; start: number; totalMin: number; height?: string }) {
   return (
     <div className={cn('w-full rounded-sm overflow-hidden flex', height)}>
       {segments.map((seg, i) => {
         const width = ((seg.endMin - seg.startMin) / totalMin) * 100;
         if (width <= 0) return null;
+        const meta = (seg?.status != null && STATUS_META[seg.status as TimelineStatus]) || DEFAULT_STATUS_META;
         return (
           <div
             key={i}
-            className={cn(STATUS_META[seg.status].colorClass, 'shrink-0')}
+            className={cn(meta?.colorClass ?? DEFAULT_STATUS_META.colorClass, 'shrink-0')}
             style={{ width: `${width}%` }}
-            title={`${STATUS_META[seg.status].label}: ${formatTime(seg.startMin)} – ${formatTime(seg.endMin)}`}
+            title={`${meta?.label ?? DEFAULT_STATUS_META.label}: ${formatTime(seg.startMin)} – ${formatTime(seg.endMin)}`}
           />
         );
       })}

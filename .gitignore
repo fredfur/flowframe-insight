@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Backend build
+backend/bin
+backend/obj
+
+# Env (secrets)
+.env
+.env.local

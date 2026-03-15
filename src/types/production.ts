@@ -14,6 +14,8 @@ export interface Equipment {
   lineId: string;
   position: number;
   nominalSpeed: number;
+  /** Quando true, a eficiência da linha = eficiência deste equipamento (ou do cluster de bottleneck). */
+  isBottleneck?: boolean;
 }
 
 export interface ProductionFlow {

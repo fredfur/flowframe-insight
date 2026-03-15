@@ -38,24 +38,53 @@ import {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
 // ---------------------------------------------------------------------------
-// Generic fetch helper (pronto para .NET)
+// Generic fetch helper (pronto para .NET) — erros são enviados para Debug
 // ---------------------------------------------------------------------------
 async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
   if (!API_BASE_URL) {
-    throw new Error(`[api] API_BASE_URL not configured — endpoint: ${endpoint}`);
+    const msg = `[api] API_BASE_URL not configured — endpoint: ${endpoint}`;
+    try {
+      const { useApiErrorLogStore } = await import('@/stores/apiErrorLogStore');
+      useApiErrorLogStore.getState().push({
+        endpoint,
+        method: (options?.method ?? 'GET').toUpperCase(),
+        status: 0,
+        statusText: 'No API URL',
+        message: msg,
+      });
+    } catch {
+      // store may not be ready
+    }
+    throw new Error(msg);
   }
+  const method = (options?.method ?? 'GET').toUpperCase();
   const res = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       'Content-Type': 'application/json',
-      // TODO: adicionar Authorization: Bearer <token> após auth real
       ...options?.headers,
     },
     ...options,
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`[api] ${res.status} ${res.statusText}: ${body}`);
+    const message = `[api] ${res.status} ${res.statusText}: ${body}`;
+    try {
+      const { useApiErrorLogStore } = await import('@/stores/apiErrorLogStore');
+      useApiErrorLogStore.getState().push({
+        endpoint,
+        method,
+        status: res.status,
+        statusText: res.statusText,
+        message,
+        body: body.slice(0, 500),
+      });
+    } catch {
+      // ignore if store not ready
+    }
+    throw new Error(message);
   }
+  // DELETE e outros endpoints podem retornar 204 No Content (sem corpo)
+  if (res.status === 204) return undefined as T;
   return res.json();
 }
 
@@ -205,6 +234,77 @@ export const EquipmentService = {
     }
     await apiFetch(`/api/equipments/${id}`, { method: 'DELETE' });
   },
+
+  /** Define equipamento como bottleneck (eficiência da linha = eficiência deste equipamento). Não exige login. */
+  async setBottleneck(id: string, isBottleneck: boolean): Promise<Equipment> {
+    if (USE_MOCK) {
+      const idx = mockEquipments.findIndex(e => e.id === id);
+      if (idx === -1) throw new Error('Equipment not found');
+      mockEquipments[idx] = { ...mockEquipments[idx], isBottleneck };
+      return mockEquipments[idx];
+    }
+    return apiFetch<Equipment>(`/api/equipments/${id}/bottleneck`, { method: 'PATCH', body: JSON.stringify({ isBottleneck }) });
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEVICES (camera + microcontroller; measures output/input of equipment)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface Device {
+  id: string;
+  externalId: string;
+  name: string;
+  lineId: string;
+  measuresOutputOfEquipmentId: string | null;
+  measuresInputOfEquipmentId: string | null;
+  streamUrl: string | null;
+  lastSeen: string | null;
+  isActive: boolean;
+}
+
+export interface CreateDevicePayload {
+  externalId: string;
+  name: string;
+  lineId: string;
+  measuresOutputOfEquipmentId?: string | null;
+  measuresInputOfEquipmentId?: string | null;
+  streamUrl?: string | null;
+}
+
+export interface UpdateDevicePayload {
+  name?: string;
+  measuresOutputOfEquipmentId?: string | null;
+  measuresInputOfEquipmentId?: string | null;
+  streamUrl?: string | null;
+  isActive?: boolean;
+}
+
+export const DeviceService = {
+  async getAll(): Promise<Device[]> {
+    if (USE_MOCK) return [];
+    return apiFetch<Device[]>('/api/devices');
+  },
+
+  async getByLine(lineId: string): Promise<Device[]> {
+    if (USE_MOCK) return [];
+    return apiFetch<Device[]>(`/api/lines/${lineId}/devices`);
+  },
+
+  async create(data: CreateDevicePayload): Promise<Device> {
+    if (USE_MOCK) throw new Error('[api] Devices require API');
+    return apiFetch<Device>('/api/devices', { method: 'POST', body: JSON.stringify(data) });
+  },
+
+  async update(id: string, data: UpdateDevicePayload): Promise<Device> {
+    if (USE_MOCK) throw new Error('[api] Devices require API');
+    return apiFetch<Device>(`/api/devices/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  },
+
+  async delete(id: string): Promise<void> {
+    if (USE_MOCK) throw new Error('[api] Devices require API');
+    await apiFetch(`/api/devices/${id}`, { method: 'DELETE' });
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -321,6 +421,77 @@ export interface RealtimeLineData {
   throughput: number;
 }
 
+/** Line snapshot usable as `line` in LineLive (id, name, type, nominalSpeed, machines, oee, throughput, transports). */
+export interface LineSnapshotForDisplay extends RealtimeLineData {
+  id: string;
+  name: string;
+  type: string;
+  nominalSpeed: number;
+  transports?: import('@/types/production').Transport[];
+}
+
+/** Raw response from GET /api/realtime/lines/:id (camelCase). */
+interface RealtimeLineSnapshotResponse {
+  lineId: string;
+  lineName: string;
+  type?: string;
+  nominalSpeed: number;
+  throughput: number;
+  oee: number;
+  availability: number;
+  performance: number;
+  quality: number;
+  machines: Array<{
+    id: string;
+    name: string;
+    type: string;
+    lineId: string;
+    position: number;
+    x: number;
+    y: number;
+    status: string;
+    oee: number;
+    availability: number;
+    performance: number;
+    quality: number;
+    throughput: number;
+    nominalSpeed: number;
+  }>;
+}
+
+function mapSnapshotToLineSnapshot(res: RealtimeLineSnapshotResponse): LineSnapshotForDisplay {
+  const oee: OEEMetrics = {
+    availability: res.availability,
+    performance: res.performance,
+    quality: res.quality,
+    oee: res.oee,
+  };
+  const machines: Machine[] = (res.machines ?? []).map(m => ({
+    id: m.id,
+    name: m.name,
+    type: m.type,
+    lineId: m.lineId,
+    position: m.position,
+    x: m.x,
+    y: m.y,
+    status: m.status as Machine['status'],
+    oee: { availability: m.availability, performance: m.performance, quality: m.quality, oee: m.oee },
+    throughput: m.throughput,
+    nominalSpeed: m.nominalSpeed,
+  }));
+  return {
+    id: res.lineId,
+    lineId: res.lineId,
+    name: res.lineName ?? '',
+    type: res.type ?? '',
+    nominalSpeed: res.nominalSpeed ?? 0,
+    machines,
+    oee,
+    throughput: res.throughput ?? 0,
+    transports: [],
+  };
+}
+
 export interface ParetoDataPoint {
   category: string;
   minutes: number;
@@ -328,18 +499,24 @@ export interface ParetoDataPoint {
 }
 
 export const RealtimeService = {
-  /** Dados instantâneos de uma linha (polling fallback) */
-  async getLineSnapshot(lineId: string): Promise<RealtimeLineData> {
+  /** Dados instantâneos de uma linha (polling). Com API, retorna formato para exibição (LineSnapshotForDisplay). */
+  async getLineSnapshot(lineId: string): Promise<LineSnapshotForDisplay> {
     if (USE_MOCK) {
       const line = mockLines.find(l => l.id === lineId) ?? mockLines[0];
       return {
+        id: line.id,
         lineId: line.id,
+        name: line.name,
+        type: line.type,
+        nominalSpeed: line.nominalSpeed,
         machines: structuredClone(line.machines),
         oee: structuredClone(line.oee),
         throughput: line.throughput,
+        transports: structuredClone(line.transports ?? []),
       };
     }
-    return apiFetch<RealtimeLineData>(`/api/realtime/lines/${lineId}`);
+    const res = await apiFetch<RealtimeLineSnapshotResponse>(`/api/realtime/lines/${lineId}`);
+    return mapSnapshotToLineSnapshot(res);
   },
 
   /** DLI (throughput ao longo do dia) */

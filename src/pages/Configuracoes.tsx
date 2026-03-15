@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,12 +26,14 @@ import type { Site, ProductionLine, Equipment, ProductionFlow, Transport, StopCa
 import {
   Settings, Building2, Factory, Cog, GitBranch, Gauge, Tag,
   Plus, Pencil, Trash2, ChevronRight, ChevronDown, MapPin, ArrowRightLeft,
-  Users, Package, ShieldCheck, UserCircle, Crown, Clock, Link2,
+  Users, Package, ShieldCheck, UserCircle, Crown, Clock, Link2, Camera, Save,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { DeviceService, LineService, EquipmentService, SiteService, FlowService, type Device, type CreateDevicePayload } from '@/services/api';
 
 // ─── Types ───
 
-type TopTab = 'structure' | 'users' | 'products' | 'stopCategories' | 'shifts' | 'assignments';
+type TopTab = 'structure' | 'users' | 'products' | 'stopCategories' | 'shifts' | 'assignments' | 'devices';
 
 interface UserRecord {
   id: string;
@@ -133,6 +135,7 @@ const DAY_LABELS: Record<string, string> = {
 
 const tabs: { id: TopTab; label: string; icon: typeof Settings }[] = [
   { id: 'structure', label: 'Estrutura', icon: Building2 },
+  { id: 'devices', label: 'Devices', icon: Camera },
   { id: 'users', label: 'Usuários', icon: Users },
   { id: 'products', label: 'Produtos', icon: Package },
   { id: 'shifts', label: 'Turnos', icon: Clock },
@@ -175,11 +178,251 @@ export default function Configuracoes() {
       </div>
 
       {activeTopTab === 'structure' && <StructureTab />}
+      {activeTopTab === 'devices' && <DevicesTab />}
       {activeTopTab === 'users' && <UsersTab />}
       {activeTopTab === 'products' && <ProductsTab />}
       {activeTopTab === 'shifts' && <ShiftsTab />}
       {activeTopTab === 'assignments' && <AssignmentsTab />}
       {activeTopTab === 'stopCategories' && <StopCategoriesTab />}
+    </div>
+  );
+}
+
+// ─── Devices Tab (câmera + microcontrolador: saída/entrada de equipamento) ───
+
+function DevicesTab() {
+  const [lines, setLines] = useState<ProductionLine[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [equipments, setEquipments] = useState<Equipment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [dialogError, setDialogError] = useState<string | null>(null);
+  const [editingDevice, setEditingDevice] = useState<Device | null>(null);
+  const [formExternalId, setFormExternalId] = useState('');
+  const [formName, setFormName] = useState('');
+  const [formLineId, setFormLineId] = useState('');
+  const [formOutputEqId, setFormOutputEqId] = useState<string>('');
+  const [formInputEqId, setFormInputEqId] = useState<string>('');
+  const apiBase = import.meta.env.VITE_API_BASE_URL ?? '';
+  // Radix Select não permite value="" em SelectItem; usar sentinela para "nenhum"
+  const NONE_EQ = '__none__';
+  const toEqId = (v: string) => (v && v !== NONE_EQ ? v : '');
+  const fromEqId = (v: string) => (v || NONE_EQ);
+
+  const load = useCallback(async () => {
+    if (!apiBase) {
+      setLines(mockLines as unknown as ProductionLine[]);
+      setEquipments(mockEquipments as unknown as Equipment[]);
+      setDevices([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const [linesRes, devicesRes, eqRes] = await Promise.all([
+        LineService.getAll(),
+        DeviceService.getAll(),
+        EquipmentService.getAll(),
+      ]);
+      setLines(linesRes as ProductionLine[]);
+      setDevices(devicesRes);
+      setEquipments(eqRes as Equipment[]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao carregar devices');
+    } finally {
+      setLoading(false);
+    }
+  }, [apiBase]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const openCreate = (lineId: string) => {
+    setEditingDevice(null);
+    setDialogError(null);
+    setFormExternalId('');
+    setFormName('');
+    setFormLineId(lineId);
+    setFormOutputEqId('');
+    setFormInputEqId('');
+    setDialogOpen(true);
+  };
+
+  const openEdit = (d: Device) => {
+    setEditingDevice(d);
+    setDialogError(null);
+    setFormExternalId(d.externalId);
+    setFormName(d.name);
+    setFormLineId(d.lineId);
+    setFormOutputEqId(d.measuresOutputOfEquipmentId ?? '');
+    setFormInputEqId(d.measuresInputOfEquipmentId ?? '');
+    setDialogOpen(true);
+  };
+
+  const saveDevice = async () => {
+    if (!apiBase) return;
+    setDialogError(null);
+    if (!editingDevice && !formExternalId.trim()) {
+      setDialogError('External ID é obrigatório');
+      return;
+    }
+    const outId = toEqId(formOutputEqId) || null;
+    const inId = toEqId(formInputEqId) || null;
+    if (!outId && !inId) {
+      setDialogError('Indique pelo menos um: mede saída do equipamento ou mede entrada do equipamento.');
+      return;
+    }
+    setSaving(true);
+    try {
+      if (editingDevice) {
+        await DeviceService.update(editingDevice.id, {
+          name: formName || undefined,
+          measuresOutputOfEquipmentId: outId || null,
+          measuresInputOfEquipmentId: inId || null,
+        });
+      } else {
+        await DeviceService.create({
+          externalId: formExternalId.trim(),
+          name: formName.trim(),
+          lineId: formLineId,
+          measuresOutputOfEquipmentId: outId || null,
+          measuresInputOfEquipmentId: inId || null,
+        });
+      }
+      setDialogOpen(false);
+      load();
+    } catch (e) {
+      setDialogError(e instanceof Error ? e.message : 'Erro ao gravar');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteDevice = async (id: string) => {
+    if (!apiBase || !confirm('Remover este device?')) return;
+    try {
+      await DeviceService.delete(id);
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao remover');
+    }
+  };
+
+  if (!apiBase) {
+    return (
+      <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+        <p>Configure <code className="text-xs bg-muted px-1 rounded">VITE_API_BASE_URL</code> para gerir devices (câmera + microcontrolador) e associar saída/entrada de equipamentos.</p>
+      </div>
+    );
+  }
+
+  if (loading) return <div className="text-sm text-muted-foreground">A carregar...</div>;
+  if (error) return <div className="text-sm text-destructive">{error}</div>;
+
+  const lineEquipments = (lineId: string) => equipments.filter(e => e.lineId === lineId);
+
+  return (
+    <div className="space-y-4">
+      <p className="text-[11px] text-muted-foreground">
+        Devices (câmera + microcontrolador) medem a saída de um equipamento e a entrada de outro. Associe cada device à linha e aos equipamentos.
+      </p>
+      {lines.map(line => {
+        const lineDevices = devices.filter(d => d.lineId === line.id);
+        const lineEquips = lineEquipments(line.id);
+        return (
+          <div key={line.id} className="rounded-lg border bg-card overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b">
+              <span className="text-xs font-medium">{line.name}</span>
+              <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={() => openCreate(line.id)}>
+                <Plus className="h-3 w-3" /> Device
+              </Button>
+            </div>
+            <div className="p-3 space-y-2">
+              {lineDevices.length === 0 && <p className="text-[11px] text-muted-foreground italic">Nenhum device nesta linha.</p>}
+              {lineDevices.map(d => {
+                const outEq = lineEquips.find(e => e.id === d.measuresOutputOfEquipmentId);
+                const inEq = lineEquips.find(e => e.id === d.measuresInputOfEquipmentId);
+                return (
+                  <div key={d.id} className="flex items-center justify-between px-3 py-2 rounded-md bg-muted/30">
+                    <div>
+                      <p className="text-[11px] font-medium">{d.name || d.externalId}</p>
+                      <p className="text-[10px] text-muted-foreground font-mono">{d.externalId}</p>
+                      <div className="flex gap-2 mt-1 text-[10px] text-muted-foreground">
+                        <span>Saída: {outEq?.name ?? '—'}</span>
+                        <span>Entrada: {inEq?.name ?? '—'}</span>
+                      </div>
+                      {d.lastSeen && <span className="text-[10px] text-muted-foreground">Último heartbeat: {new Date(d.lastSeen).toLocaleString()}</span>}
+                    </div>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEdit(d)}><Pencil className="h-3 w-3" /></Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteDevice(d.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setDialogError(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{editingDevice ? 'Editar device' : 'Novo device'}</DialogTitle>
+          </DialogHeader>
+          {dialogError && (
+            <div className="text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-md">{dialogError}</div>
+          )}
+          <div className="space-y-3">
+            {!editingDevice && (
+              <>
+                <div>
+                  <Label className="text-xs">External ID (ex.: gateway id)</Label>
+                  <Input value={formExternalId} onChange={e => setFormExternalId(e.target.value)} className="h-8 text-xs" placeholder="gateway-1" />
+                </div>
+                <div>
+                  <Label className="text-xs">Linha</Label>
+                  <Select value={formLineId} onValueChange={setFormLineId}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {lines.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+            <div>
+              <Label className="text-xs">Nome</Label>
+              <Input value={formName} onChange={e => setFormName(e.target.value)} className="h-8 text-xs" placeholder="ESP32-CAM Linha 1" />
+            </div>
+            <div>
+              <Label className="text-xs">Mede saída do equipamento</Label>
+              <Select value={fromEqId(formOutputEqId)} onValueChange={v => setFormOutputEqId(toEqId(v))}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_EQ}>—</SelectItem>
+                  {formLineId && lineEquipments(formLineId).map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Mede entrada do equipamento</Label>
+              <Select value={fromEqId(formInputEqId)} onValueChange={v => setFormInputEqId(toEqId(v))}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_EQ}>—</SelectItem>
+                  {formLineId && lineEquipments(formLineId).map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)} disabled={saving}>Cancelar</Button>
+            <Button size="sm" onClick={saveDevice} disabled={saving}>{saving ? 'A gravar…' : editingDevice ? 'Gravar' : 'Criar'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1107,14 +1350,93 @@ type DialogType = 'site' | 'line' | 'equipment' | 'flow' | 'transport';
 type DialogMode = 'create' | 'edit';
 
 function StructureTab() {
+  const apiBase = import.meta.env.VITE_API_BASE_URL ?? '';
   const [sites, setSites] = useState<Site[]>(mockSites);
   const [lines, setLines] = useState<ProductionLine[]>(mockLines);
   const [equipments, setEquipments] = useState<Equipment[]>(mockEquipments);
   const [flows, setFlows] = useState<ProductionFlow[]>(mockFlows);
+  const [loading, setLoading] = useState(!!apiBase);
+  const [structureError, setStructureError] = useState<string | null>(null);
 
   const [expandedSite, setExpandedSite] = useState<string | null>('site-1');
   const [expandedLine, setExpandedLine] = useState<string | null>('line-1');
   const [activeTab, setActiveTab] = useState<'equipments' | 'flows' | 'transports'>('equipments');
+
+  const loadStructure = useCallback(async () => {
+    if (!apiBase) return;
+    setLoading(true);
+    setStructureError(null);
+    try {
+      const [sitesRes, linesRes, eqRes, flowsRes] = await Promise.all([
+        SiteService.getAll(),
+        LineService.getAll(),
+        EquipmentService.getAll(),
+        FlowService.getAll(),
+      ]);
+      const lineList = (linesRes as ProductionLine[]).map(l => ({
+        ...l,
+        transports: (l as ProductionLine & { transports?: Transport[] }).transports ?? [],
+        machines: (l as ProductionLine & { machines?: unknown[] }).machines ?? [],
+        oee: (l as ProductionLine & { oee?: unknown }).oee ?? { availability: 0, performance: 0, quality: 0, oee: 0 },
+        throughput: (l as ProductionLine & { throughput?: number }).throughput ?? 0,
+      }));
+      const siteList = (sitesRes as Site[]).map(s => ({
+        ...s,
+        lines: lineList.filter(l => l.siteId === s.id).map(l => l.id),
+      }));
+      setSites(siteList);
+      setLines(lineList);
+      setEquipments((eqRes as Equipment[]));
+      setFlows((flowsRes as ProductionFlow[]));
+      if (siteList.length > 0) setExpandedSite(siteList[0].id);
+      if (lineList.length > 0) setExpandedLine(lineList[0].id);
+    } catch (e) {
+      setStructureError(e instanceof Error ? e.message : 'Erro ao carregar estrutura');
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, [apiBase]);
+
+  useEffect(() => {
+    loadStructure().catch(() => {});
+  }, [loadStructure]);
+
+  const handleSaveStructure = useCallback(async () => {
+    if (!apiBase) return;
+    try {
+      await loadStructure();
+      toast.success('Configurações guardadas');
+    } catch {
+      toast.error('Erro ao atualizar a estrutura');
+    }
+  }, [apiBase, loadStructure]);
+
+  const [updatingBottleneckId, setUpdatingBottleneckId] = useState<string | null>(null);
+  const setBottleneckForLine = useCallback(async (equipmentId: string, lineId: string, isBottleneck: boolean) => {
+    if (!apiBase) return;
+    setUpdatingBottleneckId(equipmentId);
+    try {
+      if (isBottleneck) {
+        const lineEquips = equipments.filter(e => e.lineId === lineId);
+        await EquipmentService.setBottleneck(equipmentId, true);
+        for (const eq of lineEquips) {
+          if (eq.id !== equipmentId) await EquipmentService.setBottleneck(eq.id, false);
+        }
+        setEquipments(prev => prev.map(e => ({
+          ...e,
+          isBottleneck: e.lineId === lineId ? e.id === equipmentId : e.isBottleneck,
+        })));
+      } else {
+        await EquipmentService.setBottleneck(equipmentId, false);
+        setEquipments(prev => prev.map(e => e.id === equipmentId ? { ...e, isBottleneck: false } : e));
+      }
+    } catch {
+      // keep previous state on error
+    } finally {
+      setUpdatingBottleneckId(null);
+    }
+  }, [apiBase, equipments]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<DialogType>('site');
@@ -1161,8 +1483,111 @@ function StructureTab() {
     setDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
     const id = editingId || `${dialogType}-${Date.now()}`;
+    const nominal = Number(formNominal) || 0;
+
+    if (apiBase) {
+      setSaving(true);
+      try {
+        if (dialogType === 'site') {
+          if (dialogMode === 'create') {
+            const created = await SiteService.create({ name: formName, location: formLocation });
+            setSites(prev => [...prev, { ...created, lines: [] }]);
+          } else {
+            await SiteService.update(id, { name: formName, location: formLocation });
+            setSites(prev => prev.map(s => s.id === id ? { ...s, name: formName, location: formLocation } : s));
+          }
+        } else if (dialogType === 'line') {
+          if (dialogMode === 'create') {
+            const created = await LineService.create({
+              name: formName,
+              type: formType,
+              siteId: dialogContext,
+              nominalSpeed: nominal,
+            });
+            const lineWithExtras = {
+              ...created,
+              transports: (created as ProductionLine & { transports?: Transport[] }).transports ?? [],
+              machines: [],
+              oee: { availability: 0, performance: 0, quality: 0, oee: 0 },
+              throughput: 0,
+            };
+            setLines(prev => [...prev, lineWithExtras]);
+            setSites(prev => prev.map(s => s.id === dialogContext ? { ...s, lines: [...s.lines, created.id] } : s));
+          } else {
+            await LineService.update(id, { name: formName, type: formType, nominalSpeed: nominal });
+            setLines(prev => prev.map(l => l.id === id ? { ...l, name: formName, type: formType, nominalSpeed: nominal } : l));
+          }
+        } else if (dialogType === 'equipment') {
+          if (dialogMode === 'create') {
+            const lineEquips = equipments.filter(e => e.lineId === dialogContext);
+            const newPosition = lineEquips.length + 1;
+            const created = await EquipmentService.create({
+              name: formName,
+              type: formType,
+              lineId: dialogContext,
+              position: newPosition,
+              nominalSpeed: nominal,
+            });
+            setEquipments(prev => [...prev, created]);
+            if (newPosition > 1) {
+              const newTransport: Transport = {
+                id: `transport-${Date.now()}`,
+                fromPosition: newPosition - 1,
+                toPosition: newPosition,
+                lineId: dialogContext,
+                type: 'conveyor',
+                accumulation: 'normal',
+                accumulationPercent: 0,
+                capacity: 50,
+                currentUnits: 0,
+              };
+              setLines(prev => prev.map(l => l.id === dialogContext ? { ...l, transports: [...(l.transports || []), newTransport] } : l));
+            }
+          } else {
+            await EquipmentService.update(id, { name: formName, type: formType, nominalSpeed: nominal });
+            setEquipments(prev => prev.map(e => e.id === id ? { ...e, name: formName, type: formType, nominalSpeed: nominal } : e));
+          }
+        } else if (dialogType === 'flow') {
+          if (dialogMode === 'create') {
+            const lineEquipIds = equipments.filter(e => e.lineId === dialogContext).map(e => e.id);
+            const created = await FlowService.create({
+              name: formName,
+              sku: formSku,
+              lineId: dialogContext,
+              equipmentIds: lineEquipIds,
+              nominalSpeed: nominal,
+            });
+            setFlows(prev => [...prev, created]);
+          } else {
+            await FlowService.update(id, { name: formName, sku: formSku, nominalSpeed: nominal });
+            setFlows(prev => prev.map(f => f.id === id ? { ...f, name: formName, sku: formSku, nominalSpeed: nominal } : f));
+          }
+        } else if (dialogType === 'transport') {
+          setLines(prev => prev.map(l => l.id === dialogContext
+            ? {
+                ...l,
+                transports: (l.transports || []).map(t => t.id === id
+                  ? { ...t, capacity: Number(formCapacity) || t.capacity, type: (formType as Transport['type']) || t.type }
+                  : t
+                ),
+              }
+            : l
+          ));
+        }
+        setDialogOpen(false);
+        resetForm();
+        toast.success('Alterações guardadas');
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Erro ao guardar');
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
 
     if (dialogType === 'site') {
       if (dialogMode === 'create') {
@@ -1174,13 +1599,13 @@ function StructureTab() {
       if (dialogMode === 'create') {
         const newLine: ProductionLine = {
           id, name: formName, type: formType, siteId: dialogContext,
-          nominalSpeed: Number(formNominal) || 0, machines: [], transports: [],
+          nominalSpeed: nominal, machines: [], transports: [],
           oee: { availability: 0, performance: 0, quality: 0, oee: 0 }, throughput: 0,
         };
         setLines(prev => [...prev, newLine]);
         setSites(prev => prev.map(s => s.id === dialogContext ? { ...s, lines: [...s.lines, id] } : s));
       } else {
-        setLines(prev => prev.map(l => l.id === id ? { ...l, name: formName, type: formType, nominalSpeed: Number(formNominal) || 0 } : l));
+        setLines(prev => prev.map(l => l.id === id ? { ...l, name: formName, type: formType, nominalSpeed: nominal } : l));
       }
     } else if (dialogType === 'equipment') {
       if (dialogMode === 'create') {
@@ -1188,7 +1613,7 @@ function StructureTab() {
         const newPosition = lineEquips.length + 1;
         const newEquip: Equipment = {
           id, name: formName, type: formType, lineId: dialogContext,
-          position: newPosition, nominalSpeed: Number(formNominal) || 0,
+          position: newPosition, nominalSpeed: nominal,
         };
         setEquipments(prev => [...prev, newEquip]);
         if (newPosition > 1) {
@@ -1199,28 +1624,28 @@ function StructureTab() {
             accumulationPercent: 0, capacity: 50, currentUnits: 0,
           };
           setLines(prev => prev.map(l => l.id === dialogContext
-            ? { ...l, transports: [...l.transports, newTransport] } : l
+            ? { ...l, transports: [...(l.transports || []), newTransport] } : l
           ));
         }
       } else {
-        setEquipments(prev => prev.map(e => e.id === id ? { ...e, name: formName, type: formType, nominalSpeed: Number(formNominal) || 0 } : e));
+        setEquipments(prev => prev.map(e => e.id === id ? { ...e, name: formName, type: formType, nominalSpeed: nominal } : e));
       }
     } else if (dialogType === 'flow') {
       if (dialogMode === 'create') {
         const lineEquipIds = equipments.filter(e => e.lineId === dialogContext).map(e => e.id);
         const newFlow: ProductionFlow = {
           id, name: formName, sku: formSku, lineId: dialogContext,
-          equipmentIds: lineEquipIds, nominalSpeed: Number(formNominal) || 0,
+          equipmentIds: lineEquipIds, nominalSpeed: nominal,
         };
         setFlows(prev => [...prev, newFlow]);
       } else {
-        setFlows(prev => prev.map(f => f.id === id ? { ...f, name: formName, sku: formSku, nominalSpeed: Number(formNominal) || 0 } : f));
+        setFlows(prev => prev.map(f => f.id === id ? { ...f, name: formName, sku: formSku, nominalSpeed: nominal } : f));
       }
     } else if (dialogType === 'transport') {
       setLines(prev => prev.map(l => l.id === dialogContext
         ? {
           ...l,
-          transports: l.transports.map(t => t.id === id
+          transports: (l.transports || []).map(t => t.id === id
             ? { ...t, capacity: Number(formCapacity) || t.capacity, type: (formType as Transport['type']) || t.type }
             : t
           ),
@@ -1233,7 +1658,47 @@ function StructureTab() {
     resetForm();
   };
 
-  const handleDelete = (type: DialogType, id: string) => {
+  const handleDelete = async (type: DialogType, id: string) => {
+    const removeFromState = () => {
+      if (type === 'site') {
+        setSites(prev => prev.filter(s => s.id !== id));
+        setLines(prev => prev.filter(l => l.siteId !== id));
+      } else if (type === 'line') {
+        setLines(prev => prev.filter(l => l.id !== id));
+        setEquipments(prev => prev.filter(e => e.lineId !== id));
+        setFlows(prev => prev.filter(f => f.lineId !== id));
+      } else if (type === 'equipment') {
+        setEquipments(prev => prev.filter(e => e.id !== id));
+      } else if (type === 'flow') {
+        setFlows(prev => prev.filter(f => f.id !== id));
+      }
+    };
+
+    if (apiBase) {
+      try {
+        if (type === 'site') {
+          await SiteService.delete(id);
+        } else if (type === 'line') {
+          await LineService.delete(id);
+        } else if (type === 'equipment') {
+          await EquipmentService.delete(id);
+        } else if (type === 'flow') {
+          await FlowService.delete(id);
+        }
+        removeFromState();
+        toast.success('Removido');
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : '';
+        const is404 = msg.includes('404');
+        if (is404) {
+          removeFromState();
+          toast.success('Removido (já não existia no servidor)');
+        } else {
+          toast.error(msg || 'Erro ao apagar');
+        }
+      }
+      return;
+    }
     if (type === 'site') { setSites(prev => prev.filter(s => s.id !== id)); setLines(prev => prev.filter(l => l.siteId !== id)); }
     else if (type === 'line') { setLines(prev => prev.filter(l => l.id !== id)); setEquipments(prev => prev.filter(e => e.lineId !== id)); setFlows(prev => prev.filter(f => f.lineId !== id)); }
     else if (type === 'equipment') { setEquipments(prev => prev.filter(e => e.id !== id)); }
@@ -1248,8 +1713,23 @@ function StructureTab() {
     transport: { create: 'Novo Transporte', edit: 'Editar Transporte' },
   };
 
+  if (apiBase && loading) {
+    return <div className="text-sm text-muted-foreground py-4">A carregar estrutura (MDM)…</div>;
+  }
+  if (structureError) {
+    return (
+      <div className="space-y-2">
+        <p className="text-sm text-destructive">{structureError}</p>
+        <Button size="sm" variant="outline" onClick={() => loadStructure()}>Tentar novamente</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
+      {apiBase && (
+        <p className="text-[11px] text-muted-foreground">As alterações são guardadas automaticamente.</p>
+      )}
       <div className="flex items-center justify-end">
         <Button size="sm" onClick={() => openCreateDialog('site')} className="gap-1.5 text-xs">
           <Plus className="h-3.5 w-3.5" /> Novo Site
@@ -1372,6 +1852,18 @@ function StructureTab() {
                                         <Badge variant="secondary" className="text-[10px] gap-1">
                                           <Gauge className="h-3 w-3" /> {eq.nominalSpeed} u/h
                                         </Badge>
+                                        {apiBase && (
+                                          <label className="flex items-center gap-1.5 text-[10px] text-muted-foreground cursor-pointer whitespace-nowrap">
+                                            <input
+                                              type="checkbox"
+                                              checked={!!eq.isBottleneck}
+                                              disabled={updatingBottleneckId !== null}
+                                              onChange={() => setBottleneckForLine(eq.id, line.id, !eq.isBottleneck)}
+                                              className="h-3.5 w-3.5 rounded border-input"
+                                            />
+                                            Bottleneck
+                                          </label>
+                                        )}
                                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog('equipment', eq.id)}>
                                           <Pencil className="h-3 w-3 text-muted-foreground" />
                                         </Button>
@@ -1473,6 +1965,21 @@ function StructureTab() {
         })}
       </div>
 
+      {apiBase && (
+        <div className="flex justify-end pt-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleSaveStructure}
+            disabled={loading}
+            className="gap-1.5 text-xs"
+          >
+            <Save className="h-3.5 w-3.5" />
+            {loading ? 'A guardar…' : 'Salvar / Atualizar'}
+          </Button>
+        </div>
+      )}
+
       {/* CRUD Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -1523,9 +2030,9 @@ function StructureTab() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)} className="text-xs">Cancelar</Button>
-            <Button size="sm" onClick={handleSave} disabled={dialogType !== 'transport' && !formName.trim()} className="text-xs">
-              {dialogMode === 'create' ? 'Criar' : 'Salvar'}
+            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)} disabled={saving} className="text-xs">Cancelar</Button>
+            <Button size="sm" onClick={() => void handleSave()} disabled={(dialogType !== 'transport' && !formName.trim()) || saving} className="text-xs">
+              {saving ? 'A guardar…' : dialogMode === 'create' ? 'Criar' : 'Salvar'}
             </Button>
           </DialogFooter>
         </DialogContent>

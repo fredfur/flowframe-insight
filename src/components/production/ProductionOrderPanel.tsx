@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,10 @@ import {
 import { cn } from '@/lib/utils';
 import { ClipboardList, Plus, Play, Square, Pencil, Trash2, Package, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { mockFlows } from '@/data/mockData';
+import { FlowService } from '@/services/api';
+import type { ProductionFlow } from '@/types/production';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 
 // ─── Types ───
 
@@ -40,25 +44,6 @@ export interface ProductionOrder {
   startedAt?: string;
   completedAt?: string;
 }
-
-// ─── Mock products (mirrors Configuracoes) ───
-
-interface ConfigProduct {
-  id: string;
-  name: string;
-  sku: string;
-  category: string;
-  nominalSpeed: number;
-  lineIds: string[];
-}
-
-const CONFIG_PRODUCTS: ConfigProduct[] = [
-  { id: 'p1', name: 'Água Mineral 500ml', sku: 'SKU-101', category: 'Bebidas', nominalSpeed: 500, lineIds: ['line-1'] },
-  { id: 'p2', name: 'Suco Natural 1L', sku: 'SKU-204', category: 'Bebidas', nominalSpeed: 350, lineIds: ['line-1'] },
-  { id: 'p3', name: 'Refrigerante 350ml', sku: 'SKU-305', category: 'Bebidas', nominalSpeed: 600, lineIds: ['line-1', 'line-2'] },
-  { id: 'p4', name: 'Detergente 500ml', sku: 'SKU-410', category: 'Limpeza', nominalSpeed: 450, lineIds: ['line-2'] },
-  { id: 'p5', name: 'Sabonete Líquido 250ml', sku: 'SKU-520', category: 'Higiene', nominalSpeed: 400, lineIds: ['line-2'] },
-];
 
 // ─── Helpers ───
 
@@ -93,13 +78,36 @@ export function ProductionOrderPanel({ lineId }: Props) {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<ProductionOrder | null>(null);
+  const [lineFlows, setLineFlows] = useState<ProductionFlow[]>([]);
+  const [loadingFlows, setLoadingFlows] = useState(false);
+
+  const loadFlowsForLine = useCallback(async () => {
+    if (!lineId) return;
+    if (API_BASE) {
+      setLoadingFlows(true);
+      try {
+        const flows = await FlowService.getByLine(lineId);
+        setLineFlows(flows ?? []);
+      } catch {
+        setLineFlows([]);
+      } finally {
+        setLoadingFlows(false);
+      }
+    } else {
+      setLineFlows(mockFlows.filter(f => f.lineId === lineId));
+    }
+  }, [lineId]);
+
+  useEffect(() => {
+    loadFlowsForLine();
+  }, [loadFlowsForLine]);
 
   // Form state
   const [formProductId, setFormProductId] = useState('');
   const [formTargetQty, setFormTargetQty] = useState('');
   const [formCode, setFormCode] = useState('');
 
-  const availableProducts = CONFIG_PRODUCTS.filter(p => p.lineIds.includes(lineId));
+  const availableProducts = lineFlows;
 
   const activeOrder = orders.find(o => o.status === 'in_progress' && o.lineId === lineId);
   const lineOrders = orders.filter(o => o.lineId === lineId);
@@ -116,30 +124,30 @@ export function ProductionOrderPanel({ lineId }: Props) {
   function openEditDialog(order: ProductionOrder) {
     setEditingOrder(order);
     setFormCode(order.code);
-    const prod = CONFIG_PRODUCTS.find(p => p.sku === order.sku);
-    setFormProductId(prod?.id ?? '');
+    const flow = lineFlows.find(f => f.sku === order.sku);
+    setFormProductId(flow?.id ?? '');
     setFormTargetQty(String(order.targetQty));
     setDialogOpen(true);
   }
 
   function saveOrder() {
-    const product = CONFIG_PRODUCTS.find(p => p.id === formProductId);
-    if (!product || !formTargetQty || !formCode) return;
+    const flow = lineFlows.find(f => f.id === formProductId);
+    if (!flow || !formTargetQty || !formCode) return;
 
     if (editingOrder) {
       setOrders(prev => prev.map(o => o.id === editingOrder.id ? {
         ...o,
         code: formCode,
-        productName: product.name,
-        sku: product.sku,
+        productName: flow.name,
+        sku: flow.sku,
         targetQty: Number(formTargetQty),
       } : o));
     } else {
       const newOrder: ProductionOrder = {
         id: `op-${Date.now()}`,
         code: formCode,
-        productName: product.name,
-        sku: product.sku,
+        productName: flow.name,
+        sku: flow.sku,
         targetQty: Number(formTargetQty),
         producedQty: 0,
         lineId,
@@ -314,9 +322,13 @@ export function ProductionOrderPanel({ lineId }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Produto</Label>
-              {availableProducts.length === 0 ? (
+              {loadingFlows ? (
                 <p className="text-xs text-muted-foreground p-2 border rounded-md bg-muted/30">
-                  Nenhum produto vinculado a esta linha nas configurações.
+                  A carregar produtos da linha…
+                </p>
+              ) : availableProducts.length === 0 ? (
+                <p className="text-xs text-muted-foreground p-2 border rounded-md bg-muted/30">
+                  Nenhum produto vinculado a esta linha nas configurações. Adicione fluxos (produtos) à linha em Configurações.
                 </p>
               ) : (
                 <Select value={formProductId} onValueChange={setFormProductId}>
@@ -324,11 +336,11 @@ export function ProductionOrderPanel({ lineId }: Props) {
                     <SelectValue placeholder="Selecione o produto" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableProducts.map(p => (
-                      <SelectItem key={p.id} value={p.id}>
+                    {availableProducts.map(f => (
+                      <SelectItem key={f.id} value={f.id}>
                         <div className="flex items-center gap-2">
-                          <span>{p.name}</span>
-                          <span className="text-muted-foreground text-xs">({p.sku})</span>
+                          <span>{f.name}</span>
+                          <span className="text-muted-foreground text-xs">({f.sku})</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -338,13 +350,9 @@ export function ProductionOrderPanel({ lineId }: Props) {
               {formProductId && (
                 <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-1">
                   {(() => {
-                    const p = CONFIG_PRODUCTS.find(x => x.id === formProductId);
-                    return p ? (
-                      <>
-                        <span>Categoria: <strong className="text-foreground">{p.category}</strong></span>
-                        <span>·</span>
-                        <span>Vel. Nominal: <strong className="text-foreground">{p.nominalSpeed} u/h</strong></span>
-                      </>
+                    const f = lineFlows.find(x => x.id === formProductId);
+                    return f ? (
+                      <span>Vel. Nominal: <strong className="text-foreground">{f.nominalSpeed} u/h</strong></span>
                     ) : null;
                   })()}
                 </div>

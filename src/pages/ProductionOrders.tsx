@@ -1,13 +1,39 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { mockLines } from '@/data/mockData';
 import { useLineStore } from '@/stores/lineStore';
 import { ProductionOrderPanel } from '@/components/production/ProductionOrderPanel';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ClipboardList } from 'lucide-react';
+import { LineService } from '@/services/api';
+import type { ProductionLine } from '@/types/production';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 
 export default function ProductionOrders() {
   const { selectedLineId, setSelectedLineId } = useLineStore();
-  const line = mockLines.find(l => l.id === selectedLineId) ?? mockLines[0];
+  const [lines, setLines] = useState<ProductionLine[]>(mockLines as ProductionLine[]);
+
+  const loadLines = useCallback(async () => {
+    if (!API_BASE) {
+      setLines(mockLines as ProductionLine[]);
+      return;
+    }
+    try {
+      const list = await LineService.getAll();
+      setLines(list as ProductionLine[]);
+      if (list.length > 0 && !list.some(l => l.id === selectedLineId)) {
+        setSelectedLineId(list[0].id);
+      }
+    } catch {
+      setLines(mockLines as ProductionLine[]);
+    }
+  }, [selectedLineId, setSelectedLineId]);
+
+  useEffect(() => {
+    loadLines();
+  }, [loadLines]);
+
+  const line = lines.find(l => l.id === selectedLineId) ?? lines[0];
 
   return (
     <div className="flex flex-col gap-4 md:gap-6 overflow-y-auto">
@@ -26,14 +52,14 @@ export default function ProductionOrders() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {mockLines.map(l => (
+            {lines.map(l => (
               <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      <ProductionOrderPanel lineId={line.id} />
+      <ProductionOrderPanel lineId={line?.id ?? selectedLineId} />
     </div>
   );
 }

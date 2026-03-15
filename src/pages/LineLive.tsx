@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { mockLines, mockDLIData, mockTimelines, mockSpeedSamples } from '@/data/mockData';
 import { useLineStore } from '@/stores/lineStore';
 import { Machine } from '@/types/production';
@@ -13,6 +13,16 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'rec
 import { AIInsightChips, MOCK_LINELIVE_INSIGHTS } from '@/components/ai/AIInsights';
 import { useNavigate } from 'react-router-dom';
 import { ClipboardList } from 'lucide-react';
+import { RealtimeService, StopService, type LineSnapshotForDisplay } from '@/services/api';
+import { buildTimelinesFromStopsAndMachines } from '@/lib/buildStatusTimeline';
+
+const POLL_INTERVAL_MS = 4000;
+const SHIFTS = [
+  { startMin: 6 * 60, endMin: 14 * 60 },
+  { startMin: 14 * 60, endMin: 22 * 60 },
+  { startMin: 22 * 60, endMin: 30 * 60 },
+];
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 
 const vGraphConfig = {
   throughput: { label: 'Vazão Real', color: 'hsl(var(--primary))' },
@@ -23,13 +33,75 @@ const dliConfig = {
   target: { label: 'Meta', color: 'hsl(var(--muted-foreground))' },
 };
 
+const fallbackLine = mockLines.find(l => l.id === 'line-1') ?? mockLines[0];
+
 export default function LineLive() {
   const { selectedLineId } = useLineStore();
-  const line = mockLines.find(l => l.id === selectedLineId) ?? mockLines[0];
+  const [line, setLine] = useState<LineSnapshotForDisplay | null>(null);
+  const [stops, setStops] = useState<Awaited<ReturnType<typeof StopService.getByLine>>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
   const navigate = useNavigate();
+  const loadingRef = useRef(false);
 
-  const sortedMachines = [...line.machines].sort((a, b) => a.position - b.position);
+  const fetchSnapshot = useCallback(async () => {
+    const id = selectedLineId || fallbackLine.id;
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    if (line == null) setLoading(true);
+    setError(null);
+    try {
+      const [snapshot, stopsRes] = await Promise.all([
+        RealtimeService.getLineSnapshot(id),
+        API_BASE ? StopService.getByLine(id) : Promise.resolve([]),
+      ]);
+      setLine(snapshot);
+      if (API_BASE) setStops(stopsRes);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao carregar dados');
+      if (!line) setLine({ ...fallbackLine, id: fallbackLine.id, lineId: fallbackLine.id, name: fallbackLine.name, type: fallbackLine.type, nominalSpeed: fallbackLine.nominalSpeed, machines: fallbackLine.machines, oee: fallbackLine.oee, throughput: fallbackLine.throughput, transports: fallbackLine.transports });
+    } finally {
+      setLoading(false);
+      loadingRef.current = false;
+    }
+  }, [selectedLineId, line]);
+
+  useEffect(() => {
+    fetchSnapshot();
+  }, [selectedLineId]);
+
+  useEffect(() => {
+    const id = selectedLineId || fallbackLine.id;
+    const t = setInterval(() => { fetchSnapshot(); }, POLL_INTERVAL_MS);
+    return () => clearInterval(t);
+  }, [selectedLineId, fetchSnapshot]);
+
+  const displayLine = line ?? (fallbackLine as unknown as LineSnapshotForDisplay);
+  const sortedMachines = [...(displayLine.machines ?? [])].sort((a, b) => a.position - b.position);
+
+  const currentMin = useMemo(() => {
+    const now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
+  }, [line]);
+  const shiftIndex = useMemo(() => {
+    const idx = SHIFTS.findIndex((s) => {
+      if (s.endMin > 1440) return currentMin >= s.startMin || currentMin < s.endMin - 1440;
+      return currentMin >= s.startMin && currentMin < s.endMin;
+    });
+    return idx >= 0 ? idx : 0;
+  }, [currentMin]);
+
+  const statusTimelines = useMemo(() => {
+    if (!API_BASE || !displayLine.machines?.length) {
+      return mockTimelines[displayLine.id] ?? [];
+    }
+    return buildTimelinesFromStopsAndMachines(
+      displayLine.machines,
+      stops,
+      shiftIndex
+    );
+  }, [API_BASE, displayLine.id, displayLine.machines, stops, shiftIndex]);
 
   // Group machines by position for parallel node support
   const flowNodes = useMemo(() => {
@@ -50,20 +122,25 @@ export default function LineLive() {
     nominal: m.nominalSpeed,
   }));
 
+  if (loading && !line) {
+    return <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">A carregar linha…</div>;
+  }
+
   return (
     <div className="flex flex-col gap-4 md:gap-6 overflow-y-auto">
+      {error && <div className="text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-md">{error}</div>}
       <div className="flex flex-col gap-4 md:gap-6 min-w-0">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-lg font-semibold text-foreground">{line.name}</h1>
+            <h1 className="text-lg font-semibold text-foreground">{displayLine.name}</h1>
             <p className="text-sm text-muted-foreground">
-              {line.type} · Nominal: {line.nominalSpeed} u/h
+              {displayLine.type} · Nominal: {displayLine.nominalSpeed} u/h
             </p>
           </div>
           <AIInsightChips insights={MOCK_LINELIVE_INSIGHTS} onAskAI={() => navigate('/assistente')} />
         </div>
 
-        <LineMetricsBar line={line} />
+        <LineMetricsBar line={displayLine as import('@/types/production').ProductionLine} />
 
         <Button
           variant="outline"
@@ -77,9 +154,10 @@ export default function LineLive() {
 
         <LineTimeline
           machines={sortedMachines}
-          timelines={mockTimelines[line.id] ?? []}
-          speedSamples={mockSpeedSamples[line.id]}
-          nominalSpeed={line.nominalSpeed}
+          timelines={statusTimelines}
+          speedSamples={mockSpeedSamples[displayLine.id]}
+          nominalSpeed={displayLine.nominalSpeed}
+          shiftIndex={shiftIndex}
         />
 
         {/* Flow */}
@@ -102,7 +180,7 @@ export default function LineLive() {
             {flowNodes.map((node, i) => {
               const nextNode = flowNodes[i + 1];
               const transport = nextNode
-                ? line.transports.find(t => t.fromPosition === node.position && t.toPosition === nextNode.position)
+                ? (displayLine.transports ?? []).find(t => t.fromPosition === node.position && t.toPosition === nextNode.position)
                 : undefined;
 
               return (
@@ -123,7 +201,7 @@ export default function LineLive() {
             {flowNodes.map((node, i) => {
               const nextNode = flowNodes[i + 1];
               const transport = nextNode
-                ? line.transports.find(t => t.fromPosition === node.position && t.toPosition === nextNode.position)
+                ? (displayLine.transports ?? []).find(t => t.fromPosition === node.position && t.toPosition === nextNode.position)
                 : undefined;
 
               return (

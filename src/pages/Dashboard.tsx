@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { mockLines, mockOEEHistory, mockDLIData, mockParetoData, mockStops } from '@/data/mockData';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { mockLines, mockOEEHistory, mockDLIData, mockParetoData } from '@/data/mockData';
 import { OEEGauge } from '@/components/production/OEEGauge';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
@@ -7,6 +7,7 @@ import { Factory, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
 import { AIInsightChips, MOCK_DASHBOARD_INSIGHTS } from '@/components/ai/AIInsights';
 import { useNavigate } from 'react-router-dom';
 import { DashboardFilters, DEFAULT_FILTERS, type DashboardFilterValues } from '@/components/dashboard/DashboardFilters';
+import { LineService, RealtimeService, type LineSnapshotForDisplay } from '@/services/api';
 
 const oeeChartConfig = {
   oee: { label: 'OEE', color: 'hsl(var(--primary))' },
@@ -24,36 +25,79 @@ const paretoConfig = {
   minutes: { label: 'Minutos', color: 'hsl(var(--destructive))' },
 };
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+
+const mockSnapshots: LineSnapshotForDisplay[] = mockLines.map(l => ({
+  id: l.id,
+  lineId: l.id,
+  name: l.name,
+  type: l.type,
+  nominalSpeed: l.nominalSpeed,
+  machines: l.machines ?? [],
+  oee: l.oee,
+  throughput: l.throughput,
+  transports: l.transports ?? [],
+}));
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [filters, setFilters] = useState<DashboardFilterValues>(DEFAULT_FILTERS);
+  const [displayLines, setDisplayLines] = useState<LineSnapshotForDisplay[]>(() => API_BASE ? [] : mockSnapshots);
+  const [loading, setLoading] = useState(!!API_BASE);
+
+  const loadLines = useCallback(async () => {
+    if (!API_BASE) {
+      setDisplayLines(mockSnapshots);
+      return;
+    }
+    setLoading(true);
+    try {
+      const list = await LineService.getAll();
+      const snapshots = await Promise.all(
+        list.map((line: { id: string }) => RealtimeService.getLineSnapshot(line.id))
+      );
+      setDisplayLines(snapshots);
+    } catch {
+      setDisplayLines(mockSnapshots);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadLines();
+  }, [loadLines]);
 
   const filteredLines = useMemo(() => {
-    let lines = mockLines;
+    let lines = displayLines;
     if (filters.lineId !== 'all') {
       lines = lines.filter(l => l.id === filters.lineId);
     }
     if (filters.machineStatus !== 'all') {
       lines = lines.map(l => ({
         ...l,
-        machines: l.machines.filter(m => m.status === filters.machineStatus),
+        machines: (l.machines ?? []).filter(m => m.status === filters.machineStatus),
       }));
     }
     return lines;
-  }, [filters.lineId, filters.machineStatus]);
+  }, [displayLines, filters.lineId, filters.machineStatus]);
 
   const filteredParetoData = useMemo(() => {
     if (filters.stopCategory === 'all') return mockParetoData;
     const catLabel = {
       maintenance: 'Manutenção', setup: 'Setup', material_shortage: 'Falta Material',
       quality_issue: 'Qualidade', operator_absence: 'Operador', planned: 'Planejada', other: 'Outros',
-    }[filters.stopCategory];
+    }[filters.stopCategory as keyof typeof catLabel];
     return mockParetoData.filter(d => d.category === catLabel);
   }, [filters.stopCategory]);
 
-  const totalOEE = filteredLines.reduce((sum, l) => sum + l.oee.oee, 0) / (filteredLines.length || 1);
+  const totalOEE = filteredLines.length ? filteredLines.reduce((sum, l) => sum + l.oee.oee, 0) / filteredLines.length : 0;
   const totalThroughput = filteredLines.reduce((sum, l) => sum + l.throughput, 0);
-  const totalStoppedMachines = filteredLines.reduce((sum, l) => sum + l.machines.filter(m => m.status !== 'running').length, 0);
+  const totalStoppedMachines = filteredLines.reduce((sum, l) => sum + (l.machines?.filter(m => m.status !== 'running').length ?? 0), 0);
+
+  if (loading && displayLines.length === 0) {
+    return <div className="text-sm text-muted-foreground py-8">A carregar...</div>;
+  }
 
   return (
     <div className="space-y-5">

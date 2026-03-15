@@ -7,10 +7,10 @@ interface LineMetricsBarProps {
 export function LineMetricsBar({ line }: LineMetricsBarProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <MetricCard label="OEE" value={`${line.oee.oee.toFixed(1)}%`} highlight={line.oee.oee >= 70} />
-      <MetricCard label="Vazão" value={`${line.throughput}`} sub="u/h" highlight />
-      <MetricCard label="Disponibilidade" value={`${line.oee.availability.toFixed(1)}%`} />
-      <MetricCard label="Performance" value={`${line.oee.performance.toFixed(1)}%`} />
+      <MetricCard label="OEE" value={`${line.oee.oee.toFixed(1)}%`} sub="acum. turno" highlight={line.oee.oee >= 70} />
+      <MetricCard label="Vazão instantânea" value={`${line.throughput}`} sub="u/h" highlight />
+      <MetricCard label="Disponibilidade" value={`${line.oee.availability.toFixed(1)}%`} sub="acum. turno" />
+      <MetricCard label="Performance" value={`${line.oee.performance.toFixed(1)}%`} sub="acum. turno" />
     </div>
   );
 }
